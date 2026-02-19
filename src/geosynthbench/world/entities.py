@@ -1,0 +1,66 @@
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+
+import networkx as nx
+from shapely.geometry import LineString, Point, Polygon
+
+from geosynthbench.world.types import (
+    BuildingId,
+    RoadId,
+    SettlementId,
+    VegId,
+    WaterId,
+)
+
+
+@dataclass(frozen=True)
+class WaterBody:
+    id: WaterId
+    polygon: Polygon
+
+
+@dataclass(frozen=True)
+class VegetationPatch:
+    id: VegId
+    polygon: Polygon
+    density: float = 1.0
+
+
+@dataclass(frozen=True)
+class Settlement:
+    id: SettlementId
+    center: Point
+    radius_m: float
+
+
+@dataclass(frozen=True)
+class RoadSegment:
+    id: RoadId
+    a_id: SettlementId
+    b_id: SettlementId
+    centerline: LineString
+    width_m: float = 8.0
+
+
+@dataclass
+class RoadNetwork:
+    segments: list[RoadSegment] = field(default_factory=list)
+    graph: nx.Graph = field(default_factory=nx.Graph) # type: ignore
+
+    def rebuild_graph(self) -> None:
+        g = nx.Graph()
+        for seg in self.segments:
+            g.add_node(seg.a_id)
+            g.add_node(seg.b_id)
+            # store edge attributes
+            g.add_edge(seg.a_id, seg.b_id, road_id=seg.id, length=float(seg.centerline.length))
+        self.graph = g
+
+
+@dataclass(frozen=True)
+class Building:
+    id: BuildingId
+    settlement_id: SettlementId
+    footprint: Polygon
+    near_road_id: RoadId | None = None

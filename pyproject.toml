@@ -1,0 +1,51 @@
+[project]
+name = "geosynthbench"
+version = "0.1.0"
+description = "Synthetic geospatial imaging + reasoning dataset generator"
+readme = "README.md"
+authors = [
+    { name = "Antoine LI", email = "91544027+antoinelii@users.noreply.github.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "loguru>=0.7.3",
+    "mistralai>=1.12.3",
+    "networkx>=3.6.1",
+    "numpy>=2.4.2",
+    "pillow>=12.1.1",
+    "pydantic==2.*",
+    "shapely>=2.1.2",
+]
+
+[project.scripts]
+geosynthbench = "geosynthbench:main"
+
+[build-system]
+requires = ["uv_build>=0.8.17,<0.9.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "ipykernel>=7.2.0",
+    "matplotlib>=3.10.8",
+    "pre-commit>=4.5.1",
+    "prek>=0.3.3",
+    "pyright>=1.1.408",
+    "pytest>=9.0.2",
+    "ruff>=0.15.1",
+]
+
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "scripts", "tests"]
+lint.select = ["E", "F", "I"]
+lint.ignore = ["E501"]  # keep formatting responsibility with ruff format
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
