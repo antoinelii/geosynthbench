@@ -6,6 +6,7 @@ from typing import Any
 import numpy as np
 
 from geosynthbench.pipeline.types import RenderArtifacts
+from geosynthbench.tasks.utils import _px_loc
 
 
 @dataclass(frozen=True)
@@ -63,9 +64,14 @@ class D1DistanceToWaterTask:
 
         answer = "A" if da < db else "B"
 
+        a_px = _px_loc(a.center, world_t0)
+        b_px = _px_loc(b.center, world_t0)
+
         prompt = (
-            f"[{self.code}] Two settlements A and B are shown.\n"
-            f"Which settlement is closer to water? Answer A or B."
+            f"[{self.code}] Two settlements are given by pixel coordinates:\n"
+            f"A at {a_px}\n"
+            f"B at {b_px}\n\n"
+            f"Question: Which settlement is closer to water? Answer with A or B."
         )
 
         return {
@@ -80,7 +86,7 @@ class D1DistanceToWaterTask:
             "prompt": prompt,
             "answer": answer,
             "oracle": {
-                "dist_A_m": float(da),
-                "dist_B_m": float(db),
+                "A": {"settlement_id": str(a.id), "px": list(a_px), "dist_to_water_m": float(da)},
+                "B": {"settlement_id": str(b.id), "px": list(b_px), "dist_to_water_m": float(db)},
             },
         }

@@ -6,6 +6,7 @@ from typing import Any
 import numpy as np
 
 from geosynthbench.pipeline.types import RenderArtifacts
+from geosynthbench.tasks.e1_elevation import _px_loc
 
 
 @dataclass(frozen=True)
@@ -53,9 +54,14 @@ class S1SlopeCompareTask:
 
         answer = "A" if sa > sb else "B"
 
+        a_px = _px_loc(a.center, world_t0)
+        b_px = _px_loc(b.center, world_t0)
+
         prompt = (
-            f"[{self.code}] Two settlements A and B are shown.\n"
-            f"Which settlement is located on steeper terrain? Answer A or B."
+            f"[{self.code}] Two settlements are given by pixel coordinates:\n"
+            f"A at {a_px}\n"
+            f"B at {b_px}\n\n"
+            f"Question: Which settlement is on steeper terrain? Answer with A or B."
         )
 
         return {
@@ -70,7 +76,7 @@ class S1SlopeCompareTask:
             "prompt": prompt,
             "answer": answer,
             "oracle": {
-                "slope_A": float(sa),
-                "slope_B": float(sb),
+                "A": {"settlement_id": str(a.id), "px": list(a_px), "slope": float(sa)},
+                "B": {"settlement_id": str(b.id), "px": list(b_px), "slope": float(sb)},
             },
         }

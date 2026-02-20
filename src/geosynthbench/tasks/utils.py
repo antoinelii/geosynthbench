@@ -1,5 +1,6 @@
 import numpy as np
 from PIL.Image import Image
+from shapely.geometry import Point
 
 from geosynthbench.gen.config import WorldGenConfig
 from geosynthbench.gen.pipeline import generate_world
@@ -38,3 +39,13 @@ def render_t0_t1_samples(
     sem_mask0 = mask_layers_to_mask_image(mask_res0)
     sem_mask1 = mask_layers_to_mask_image(mask_res1)
     return (img0, sem_mask0), (img1, sem_mask1)
+
+
+def _px_loc(point: Point, world: WorldState) -> tuple[int, int]:
+    u, v = world.tr.world_to_px(point.x, point.y)
+    return int(u), int(v)
+
+
+def _labels(n: int) -> list[str]:
+    # Supports up to 26 settlements; your config is 4–6 so it's fine
+    return [chr(ord("A") + i) for i in range(n)]
