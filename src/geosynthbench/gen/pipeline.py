@@ -4,6 +4,7 @@ import numpy as np
 
 from geosynthbench.gen.buildings import generate_buildings
 from geosynthbench.gen.config import WorldGenConfig
+from geosynthbench.gen.exceptions import WorldGenerationFailed
 from geosynthbench.gen.roads import generate_roads
 from geosynthbench.gen.settlements import generate_settlements
 from geosynthbench.gen.terrain import generate_terrain
@@ -96,4 +97,4 @@ def generate_world(
         if not hard_violations(viol):
             return world
 
-    raise RuntimeError(f"Failed to generate a valid world after {max_retries} retries.")
+    raise WorldGenerationFailed(f"Failed to generate a valid world after {max_retries} retries.")

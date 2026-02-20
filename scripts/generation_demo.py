@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from geosynthbench.gen.exceptions import WorldGenerationFailed
 from geosynthbench.pipeline.run import build_one_record
 from geosynthbench.utils.logging import get_logger, setup_logging
 
@@ -30,7 +31,7 @@ def _stable_seed(base_seed: int, task_id: str, k: int) -> int:
 class DemoConfig:
     out_root: Path  # root folder containing data/<task>/dataset.jsonl
     base_seed: int
-    per_task: int
+    per_task: tuple[int, ...]
     task_ids: tuple[str, ...]
     overwrite: bool
 
@@ -61,28 +62,43 @@ def main() -> None:
         default=",".join(TASK_IDS_DEFAULT),
         help="Comma-separated list of task ids (default: e1,d1,s1,n1,a1)",
     )
-    ap.add_argument("--per-task", type=int, default=3, help="Samples per task id")
+    # add an argument for number of samples per task if list make it match listof task ids
+    # if int make it same for all task ids
+    ap.add_argument(
+        "--per-task",
+        type=str,
+        default="3",
+        help="Samples per task id (int or comma-separated list of ints) to match task ids (default: 3)\
+                        . If list, must match number of task ids. If int, same for all task ids.",
+    )
     ap.add_argument("--seed", type=int, default=12345, help="Base seed for reproducibility")
     ap.add_argument(
         "--overwrite",
-        action="store_true",
-        help="If set, overwrite <out>/<task>/dataset.jsonl. Otherwise appends.",
+        type=bool,
+        default=False,
+        help="If True, overwrite <out>/<task>/dataset.jsonl. Otherwise appends.",
     )
     args = ap.parse_args()
+    task_ids: tuple[str, ...] = tuple(t.strip() for t in args.tasks.split(",") if t.strip())
+    n_tasks = len(task_ids)
+    per_tasks = [n.strip() for n in args.per_task.split(",") if n.strip()]
+    if len(per_tasks) == 1:
+        per_tasks = per_tasks * n_tasks
+    assert len(per_tasks) == n_tasks
+    per_tasks = tuple([int(n) for n in per_tasks])
 
+    total = 0
     cfg = DemoConfig(
         out_root=Path(args.out),
         base_seed=int(args.seed),
-        per_task=int(args.per_task),
-        task_ids=tuple(t.strip() for t in args.tasks.split(",") if t.strip()),
+        per_task=per_tasks,
+        task_ids=task_ids,
         overwrite=bool(args.overwrite),
     )
 
     cfg.out_root.mkdir(parents=True, exist_ok=True)
-
-    total = 0
-
-    for task_id in cfg.task_ids:
+    for i, task_id in enumerate(cfg.task_ids):
+        total = 0
         task_dir = cfg.out_root / task_id.lower()
         task_dir.mkdir(parents=True, exist_ok=True)
 
@@ -93,36 +109,32 @@ def main() -> None:
         start_k = 0
         if dataset_path.exists() and not cfg.overwrite:
             # Count lines for stable continuation
-            start_k = sum(1 for _ in dataset_path.open("r", encoding="utf-8"))
+            records = [json.loads(line) for line in dataset_path.open("r", encoding="utf-8")]
+            start_k = len(records)
 
-        for k in range(start_k, start_k + cfg.per_task):
+        for k in range(start_k, start_k + cfg.per_task[i]):
             seed = _stable_seed(cfg.base_seed, task_id, k)
-            sample_id = f"{task_id.lower()}_{k:03d}"
+            sample_id = f"{task_id.lower()}_{k:05d}"
+            try:
+                rec = build_one_record(
+                    task_code=task_id,
+                    sample_id=sample_id,
+                    out_dir=task_dir,  # IMPORTANT: per-task directory (viewer expects relative paths to exist)
+                    seed=seed,
+                )
+                # Add minimal provenance
+                rec.setdefault("seed", seed)
+                rec.setdefault("task_code", task_id.lower())
+                rec.setdefault("sample_id", sample_id)
 
-            rec = build_one_record(
-                task_code=task_id,
-                sample_id=sample_id,
-                out_dir=task_dir,  # IMPORTANT: per-task directory (viewer expects relative paths to exist)
-                seed=seed,
-            )
+                records.append(rec)
+                # save after each sample to ensure progress is not lost on failure and for easier inspection during generation
+                write_jsonl(dataset_path, records)
+                total += 1
 
-            # Add minimal provenance
-            rec.setdefault("seed", seed)
-            rec.setdefault("task_code", task_id.lower())
-            rec.setdefault("sample_id", sample_id)
-
-            records.append(rec)
-            total += 1
-
-        # Write dataset.jsonl
-        if cfg.overwrite:
-            write_jsonl(dataset_path, records)
-        else:
-            # append
-            dataset_path.parent.mkdir(parents=True, exist_ok=True)
-            with dataset_path.open("a", encoding="utf-8") as f:
-                for r in records:
-                    f.write(json.dumps(r, ensure_ascii=False) + "\n")
+            except WorldGenerationFailed as e:
+                log.warning(f"[SKIP] sample {sample_id} failed to build_one_record: {e}")
+                continue
 
         log.success(f"✅ {task_id}: wrote {len(records)} records -> {dataset_path}")
 

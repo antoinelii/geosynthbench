@@ -6,8 +6,9 @@ echo "🚀 Running GeoSynthBench demo dataset generation..."
 # Config
 OUT_DIR="data_bulky"
 TASKS="e1,d1,s1,n1,a1"
-PER_TASK=100
+PER_TASK="100,100,100,100,100"
 SEED=12345
+OVERWRITE=False
 
 # Ensure dependencies are synced
 echo "📦 Syncing environment with uv..."
@@ -20,7 +21,7 @@ uv run python scripts/generation_demo.py \
   --tasks "$TASKS" \
   --per-task "$PER_TASK" \
   --seed "$SEED" \
-  --overwrite
+  --overwrite "$OVERWRITE"
 
 echo "✅ Generation complete!"
 echo "📁 Output directory: $OUT_DIR"
