@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from enum import Enum
 
 import networkx as nx
 from shapely.geometry import LineString, Point, Polygon
@@ -12,6 +13,16 @@ from geosynthbench.world.types import (
     VegId,
     WaterId,
 )
+
+
+# Create entitities enum
+class EntityType(Enum):
+    BG = 0
+    WATER = 1
+    VEG = 2
+    ROAD = 3
+    SETTLEMENT = 4
+    BUILDING = 5
 
 
 @dataclass(frozen=True)
@@ -46,7 +57,7 @@ class RoadSegment:
 @dataclass
 class RoadNetwork:
     segments: list[RoadSegment] = field(default_factory=list)
-    graph: nx.Graph = field(default_factory=nx.Graph) # type: ignore
+    graph: nx.Graph = field(default_factory=nx.Graph)  # type: ignore
 
     def rebuild_graph(self) -> None:
         g = nx.Graph()

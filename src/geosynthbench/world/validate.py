@@ -76,7 +76,6 @@ def validate_world(
     V.extend(r12_check_road_not_in_water(world, water_u, forbid_roads_in_water))
     # --- R13 HARD: roads slope max
     V.extend(r13_check_road_slope(world, max_slope_road))
-
     # --- R11 HARD: road network connectivity
     V.extend(r11_check_road_connected(world, require_connected_roads))
 
