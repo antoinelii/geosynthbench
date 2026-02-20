@@ -46,9 +46,9 @@ def load_mask_as_rgb(path: str | None):
     return Image.fromarray(semantic_mask_to_rgb(m))
 
 
-def _scan_datasets(data_root: str = "data") -> dict[str, Path]:
+def _scan_datasets(data_root: str = "data_demo") -> dict[str, Path]:
     """
-    Finds data/<NAME>/dataset.jsonl
+    Finds data_demo/<NAME>/dataset.jsonl
     Returns mapping: dataset_name -> jsonl_path
     """
     root = Path(data_root)
@@ -118,7 +118,7 @@ def _dataset_summary(recs: list[dict[str, Any]], max_preview: int = 30) -> None:
         )
 
     st.markdown("#### Preview (first records)")
-    st.dataframe(rows, width=True)
+    st.dataframe(rows, use_container_width=True)
 
 
 def main() -> None:
@@ -129,7 +129,7 @@ def main() -> None:
     st.title("GeoSynthBench Dataset Viewer")
 
     # --- dataset selection
-    datasets = _scan_datasets("data_demo")
+    datasets = _scan_datasets("data")
     dataset_names = ["(manual path)"] + list(datasets.keys())
 
     selected_dataset = st.sidebar.selectbox("Dataset", options=dataset_names, index=0)
@@ -153,10 +153,6 @@ def main() -> None:
     if not recs:
         st.warning("No records in JSONL.")
         return
-
-    # --- optional dataset summary pane
-    with st.expander("Dataset summary", expanded=True):
-        _dataset_summary(recs, max_preview=40)
 
     # --- Filters
     task_codes = sorted({str(r.get("task_code", "UNK")) for r in recs})
@@ -205,6 +201,54 @@ def main() -> None:
         f"Sample {r.get('sample_id', 'UNK')} — {r.get('task_code', 'UNK')} ({r.get('modality','UNK')})"
     )
 
+    inputs = r.get("inputs", {}) or {}
+    modality = str(r.get("modality", "single"))
+
+    # Images
+    st.markdown("### Visuals")
+    if modality == "single":
+        img = load_img(inputs.get("image"))
+        mask_rgb = load_mask_as_rgb(inputs.get("mask"))
+
+        c1, c2 = st.columns(2)
+        with c1:
+            st.write("RGB")
+            if img is None:
+                st.warning("image not found")
+            else:
+                st.image(img, use_container_width=True)
+        with c2:
+            st.write("Mask (colored)")
+            if mask_rgb is None:
+                st.info("mask not available")
+            else:
+                st.image(mask_rgb, use_container_width=True)
+
+    else:
+        t0 = load_img(inputs.get("t0_image"))
+        t1 = load_img(inputs.get("t1_image"))
+        change = load_mask_as_rgb(inputs.get("change_mask"))
+
+        c1, c2 = st.columns(2)
+        with c1:
+            st.write("t0")
+            if t0 is None:
+                st.warning("t0 not found")
+            else:
+                st.image(t0, use_container_width=True)
+        with c2:
+            st.write("t1")
+            if t1 is None:
+                st.warning("t1 not found")
+            else:
+                st.image(t1, use_container_width=True)
+
+        st.write("Change mask")
+        if change is None:
+            st.info("change_mask not available")
+        else:
+            st.image(change, use_container_width=True)
+
     # Text fields
     colA, colB = st.columns([2, 1])
     with colA:
@@ -227,53 +271,9 @@ def main() -> None:
         st.markdown("### Inputs")
         st.json(r.get("inputs", {}))
 
-    inputs = r.get("inputs", {}) or {}
-    modality = str(r.get("modality", "single"))
-
-    # Images
-    st.markdown("### Visuals")
-    if modality == "single":
-        img = load_img(inputs.get("image"))
-        mask_rgb = load_mask_as_rgb(inputs.get("mask"))
-
-        c1, c2 = st.columns(2)
-        with c1:
-            st.write("RGB")
-            if img is None:
-                st.warning("image not found")
-            else:
-                st.image(img, width=True)
-        with c2:
-            st.write("Mask (colored)")
-            if mask_rgb is None:
-                st.info("mask not available")
-            else:
-                st.image(mask_rgb, width=True)
-
-    else:
-        t0 = load_img(inputs.get("t0_image"))
-        t1 = load_img(inputs.get("t1_image"))
-        change = load_mask_as_rgb(inputs.get("change_mask"))
-
-        c1, c2 = st.columns(2)
-        with c1:
-            st.write("t0")
-            if t0 is None:
-                st.warning("t0 not found")
-            else:
-                st.image(t0, width=True)
-        with c2:
-            st.write("t1")
-            if t1 is None:
-                st.warning("t1 not found")
-            else:
-                st.image(t1, width=True)
-
-        st.write("Change mask")
-        if change is None:
-            st.info("change_mask not available")
-        else:
-            st.image(change, width=True)
+    # --- optional dataset summary pane
+    with st.expander("Dataset summary", expanded=True):
+        _dataset_summary(recs, max_preview=40)
 
     log.info(f"Viewed idx={idx} sample_id={r.get('sample_id')} task={r.get('task_code')}")
 
