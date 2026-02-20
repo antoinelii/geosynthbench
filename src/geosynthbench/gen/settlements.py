@@ -4,8 +4,8 @@ import numpy as np
 from shapely.geometry import Point
 
 from geosynthbench.world.entities import Settlement
-from geosynthbench.world.world_state import WorldState
 from geosynthbench.world.types import SettlementId
+from geosynthbench.world.world_state import WorldState
 
 
 def _ok_center(world: WorldState, x: float, y: float, min_dist: float, max_slope: float) -> bool:
@@ -24,9 +24,14 @@ def _ok_center(world: WorldState, x: float, y: float, min_dist: float, max_slope
     return True
 
 
-def generate_settlements(world: WorldState, rng: np.random.Generator, n_settlements: int,
-                         radius_range: tuple[float, float], min_dist_settlements_m: float,
-                         max_slope_settlement: float) -> None:
+def generate_settlements(
+    world: WorldState,
+    rng: np.random.Generator,
+    n_settlements: int,
+    radius_range: tuple[float, float],
+    min_dist_settlements_m: float,
+    max_slope_settlement: float,
+) -> None:
     out: list[Settlement] = []
     world.settlements = []
 
@@ -37,7 +42,9 @@ def generate_settlements(world: WorldState, rng: np.random.Generator, n_settleme
         attempts += 1
         x = float(rng.uniform(world.tr.xmin, world.tr.xmax))
         y = float(rng.uniform(world.tr.ymin, world.tr.ymax))
-        if not _ok_center(world, x, y, min_dist=min_dist_settlements_m, max_slope=max_slope_settlement):
+        if not _ok_center(
+            world, x, y, min_dist=min_dist_settlements_m, max_slope=max_slope_settlement
+        ):
             continue
         radius = float(rng.uniform(radius_range[0], radius_range[1]))
         sid = SettlementId(f"s{len(out)}")

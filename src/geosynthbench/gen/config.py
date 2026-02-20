@@ -12,14 +12,18 @@ FloatRange = tuple[float, float]
 def _pick_int(rng: np.random.Generator, v: int | IntRange) -> int:
     if isinstance(v, int):
         return v
-    a, b = v
+    else:
+        assert isinstance(v, tuple)
+        a, b = v
     return int(rng.integers(a, b + 1))
 
 
 def _pick_float(rng: np.random.Generator, v: float | FloatRange) -> float:
     if isinstance(v, float):
         return v
-    a, b = v
+    else:
+        assert isinstance(v, tuple)
+        a, b = v
     return float(rng.uniform(a, b))
 
 

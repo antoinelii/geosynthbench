@@ -56,6 +56,9 @@ def world_from_dict(t0: dict[str, Any], *, base_dir: Path) -> WorldState:
     water_list = []
     for wrec in t0.get("water", []):
         poly = wkt.loads(wrec["polygon_wkt"])
+        assert isinstance(
+            poly, Polygon
+        ), f"Water polygon WKT is not a Polygon: {wrec['polygon_wkt']}"
         water_list.append(WaterBody(id=WaterId(str(wrec["id"])), polygon=poly))
     world.water = water_list
 
@@ -63,6 +66,9 @@ def world_from_dict(t0: dict[str, Any], *, base_dir: Path) -> WorldState:
     veg_list = []
     for vrec in t0.get("vegetation", []):
         poly = wkt.loads(vrec["polygon_wkt"])
+        assert isinstance(
+            poly, Polygon
+        ), f"Vegetation polygon WKT is not a Polygon: {vrec['polygon_wkt']}"
         veg_list.append(
             VegetationPatch(
                 id=VegId(str(vrec["id"])),

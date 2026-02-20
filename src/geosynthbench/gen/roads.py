@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-import numpy as np
 import networkx as nx
-from shapely.geometry import LineString
+import numpy as np
+from shapely.geometry import LineString, Point
 
 from geosynthbench.world.entities import RoadNetwork, RoadSegment
-from geosynthbench.world.world_state import WorldState
 from geosynthbench.world.types import RoadId
+from geosynthbench.world.world_state import WorldState
 
 
 def _complete_graph_edges(world: WorldState) -> list[tuple[int, int, float]]:
@@ -36,7 +36,68 @@ def _ring_edges(n: int) -> list[tuple[int, int]]:
     return [(i, (i + 1) % n) for i in range(n)]
 
 
-def generate_roads(world: WorldState, rng: np.random.Generator, mode: str, extra_edges: int, width_m: float) -> None:
+def _chaikin_smooth(coords: list[tuple[float, float]], n_iters: int) -> list[tuple[float, float]]:
+    """Chaikin corner-cutting. Keeps endpoints. Returns a denser, smoother polyline.
+
+    https://en.wikipedia.org/wiki/Ca%C3%AFkin%27s_corner-cutting_algorithm
+    """
+    if len(coords) < 2:
+        return coords
+    out = coords
+    for _ in range(n_iters):
+        nxt: list[tuple[float, float]] = [out[0]]
+        for i in range(len(out) - 1):
+            (x0, y0), (x1, y1) = out[i], out[i + 1]
+            q = (0.75 * x0 + 0.25 * x1, 0.75 * y0 + 0.25 * y1)
+            r = (0.25 * x0 + 0.75 * x1, 0.25 * y0 + 0.75 * y1)
+            nxt.append(q)
+            nxt.append(r)
+        nxt.append(out[-1])
+        out = nxt
+    return out
+
+
+def _curved_link(
+    a: Point,
+    b: Point,
+    rng: np.random.Generator,
+    jitter_frac: float = 0.2,
+    smooth_iters: int = 2,
+) -> LineString:
+    """
+    Create a curved polyline between a and b by adding 1-2 control points with perpendicular jitter,
+    then smoothing.
+    """
+    ax, ay = a.x, a.y
+    bx, by = b.x, b.y
+    dx, dy = bx - ax, by - ay
+    dist = float(np.hypot(dx, dy))
+    if dist <= 1e-6:
+        return LineString([a, b])
+
+    # unit perpendicular
+    px, py = (-dy / dist, dx / dist)
+
+    # 1 or 2 control points
+    k = int(rng.integers(1, 3))
+    ts = np.linspace(0.0, 1.0, num=k + 2)[1:-1]
+    coords: list[tuple[float, float]] = [(ax, ay)]
+    for t in ts:
+        base_x = ax + float(t) * dx
+        base_y = ay + float(t) * dy
+        # jitter amplitude scales with distance
+        amp = jitter_frac * dist
+        off = float(rng.uniform(-amp, amp))
+        coords.append((base_x + off * px, base_y + off * py))
+    coords.append((bx, by))
+
+    smoothed = _chaikin_smooth(coords, n_iters=smooth_iters)
+    return LineString(smoothed)
+
+
+def generate_roads(
+    world: WorldState, rng: np.random.Generator, mode: str, extra_edges: int, width_m: float
+) -> None:
     n = len(world.settlements)
     segs: list[RoadSegment] = []
 
@@ -77,6 +138,7 @@ def generate_roads(world: WorldState, rng: np.random.Generator, mode: str, extra
         a = world.settlements[i]
         b = world.settlements[j]
         line = LineString([(a.center.x, a.center.y), (b.center.x, b.center.y)])
+        line = _curved_link(a.center, b.center, rng=rng, jitter_frac=0.2, smooth_iters=2)
         segs.append(
             RoadSegment(
                 id=RoadId(f"r{idx}"),

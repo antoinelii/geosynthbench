@@ -8,7 +8,7 @@ from shapely.geometry.base import BaseGeometry
 from geosynthbench.world.world_state import WorldState
 
 
-def _h_update(h: "hashlib._Hash", s: str) -> None:
+def _h_update(h: hashlib._Hash, s: str) -> None:
     h.update(s.encode("utf-8"))
     h.update(b"\x1f")
 

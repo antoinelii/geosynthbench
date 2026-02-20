@@ -61,31 +61,35 @@ class WorldItem:
         world_state = world_from_dict(record["t0"], base_dir=self.jsonl_path.parent)
         return world_state
 
-    def load_terrain(self) -> np.ndarray[tuple[float, float], np.float32]:
-        terrain = np.load(self.terrain_path)
+    def load_terrain(self) -> np.ndarray[tuple[int, int], np.float32]:
+        terrain = np.load(self.terrain_path).astype(np.dtype(np.float32))
         return terrain
 
     def load_rgb(self) -> Optional[np.ndarray[tuple[int, int, int], np.uint8]]:
         if self.has_rgb:
-            rgb = np.load(self.rgb_path)
+            assert self.rgb_path is not None
+            rgb = np.load(self.rgb_path).astype(np.dtype(np.uint8))
             return rgb
         return None
 
     def load_mask(self) -> Optional[np.ndarray[tuple[int, int, int], np.uint8]]:
         if self.has_mask:
-            mask = np.load(self.mask_path)
+            assert self.mask_path is not None
+            mask = np.load(self.mask_path).astype(np.dtype(np.uint8))
             return mask
         return None
 
     def load_height(self) -> Optional[np.ndarray[tuple[float], np.float32]]:
         if self.has_height:
-            height = np.load(self.height_path)
+            assert self.height_path is not None
+            height = np.load(self.height_path).astype(np.dtype(np.float32))
             return height
         return None
 
     def load_slope(self) -> Optional[np.ndarray[tuple[float], np.float32]]:
         if self.has_slope:
-            slope = np.load(self.slope_path)
+            assert self.slope_path is not None
+            slope = np.load(self.slope_path).astype(np.dtype(np.float32))
             return slope
         return None
 
@@ -133,7 +137,7 @@ class WorldsDataset:
     def load_rgb(self, idx: int) -> Optional[np.ndarray[tuple[int, int, int], np.uint8]]:
         item = self.items[idx]
         if item.rgb_path is not None and item.rgb_path.exists():
-            rgb = np.load(item.rgb_path)
+            rgb = np.load(item.rgb_path).astype(np.dtype(np.uint8))
             return rgb
         return None
 

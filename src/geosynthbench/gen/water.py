@@ -1,18 +1,20 @@
 from __future__ import annotations
 
 import numpy as np
-from shapely.affinity import rotate, translate
-from shapely.geometry import Point, Polygon
+from shapely.geometry import Polygon
 
 from geosynthbench.world.entities import WaterBody
-from geosynthbench.world.world_state import WorldState
 from geosynthbench.world.types import WaterId
+from geosynthbench.world.world_state import WorldState
 
 
-def _blob(rng: np.random.Generator, center: tuple[float, float], base_r: float, n_pts: int = 64) -> Polygon:
+def _blob(
+    rng: np.random.Generator, center: tuple[float, float], base_r: float, n_pts: int = 64
+) -> Polygon:
     cx, cy = center
     angles = np.linspace(0, 2 * np.pi, n_pts, endpoint=False)
-    radii = base_r * (0.75 + 0.5 * rng.random(n_pts))
+
+    radii = base_r * (0.75 + 0.50 * rng.random(n_pts))
     xs = cx + radii * np.cos(angles)
     ys = cy + radii * np.sin(angles)
     poly = Polygon(np.column_stack([xs, ys]))
@@ -31,13 +33,20 @@ def generate_water(world: WorldState, rng: np.random.Generator, n_water: int) ->
         cy = rng.uniform(world.tr.ymin, world.tr.ymax)
         base_r = rng.uniform(220.0, 650.0)
 
-        poly = _blob(rng, (cx, cy), base_r=base_r, n_pts=int(rng.integers(48, 96)))
+        poly = _blob(rng, (cx, cy), base_r=base_r, n_pts=int(rng.integers(16, 32)))
         # clip to extent
         poly = poly.intersection(extent)
 
         if poly.is_empty or (hasattr(poly, "area") and poly.area < 1.0):
             continue
 
-        out.append(WaterBody(id=WaterId(f"w{i}"), polygon=poly))
+        # convert to list of polys if we get a multi-poly result from difference
+        if poly.geom_type == "Polygon":
+            polys = [poly]
+        else:
+            polys = list(poly.geoms)
+
+        for p in polys:
+            out.append(WaterBody(id=WaterId(f"w{i}"), polygon=p))
 
     world.water = out
