@@ -42,7 +42,7 @@ def _line_to_px(world: WorldState, line: LineString) -> list[tuple[float, float]
 def _draw_polygon(draw: ImageDraw.ImageDraw, poly: Polygon, fill, outline=None) -> None:
     if poly.is_empty:
         return
-    ext, holes = poly
+    ext = poly.exterior.coords.xy
     draw.polygon(ext, fill=fill, outline=outline)
     # "Punch" holes by filling with 0 alpha / background is not trivial in RGB,
     # but for our layers we rarely have holes. If you do, render holes separately in mask logic.
@@ -116,7 +116,7 @@ def render_world_debug(
 
     # Roads (draw as thick poly from buffered centerline)
     for seg in world.roads.segments:
-        road_poly = seg.centerline.buffer(seg.width_m / 2.0, cap_style=2, join_style=2)
+        road_poly = seg.centerline.buffer(seg.width_m / 2.0, cap_style="round", join_style="mitre")
         paint_poly(road_poly, pal.road_rgb, pal.ROAD, alpha=255)
 
     # Buildings
