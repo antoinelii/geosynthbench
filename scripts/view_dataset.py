@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+from collections import Counter
 from pathlib import Path
 from typing import Any
 
@@ -41,9 +42,83 @@ def load_mask_as_rgb(path: str | None):
         return None
     m = np.array(Image.open(p))
     if m.ndim == 3:
-        # already rgb-like
         return Image.fromarray(m)
     return Image.fromarray(semantic_mask_to_rgb(m))
+
+
+def _scan_datasets(data_root: str = "data") -> dict[str, Path]:
+    """
+    Finds data/<NAME>/dataset.jsonl
+    Returns mapping: dataset_name -> jsonl_path
+    """
+    root = Path(data_root)
+    out: dict[str, Path] = {}
+    if not root.exists():
+        return out
+    for d in sorted(root.iterdir()):
+        if not d.is_dir():
+            continue
+        p = d / "dataset.jsonl"
+        if p.exists():
+            out[d.name] = p
+    return out
+
+
+def _safe_text(x: Any, max_len: int = 120) -> str:
+    if x is None:
+        return ""
+    if isinstance(x, (dict, list)):
+        s = json.dumps(x, ensure_ascii=False)
+    else:
+        s = str(x)
+    return s if len(s) <= max_len else s[: max_len - 3] + "..."
+
+
+def _answer_block(ans: Any) -> None:
+    if isinstance(ans, (dict, list)):
+        st.json(ans)
+    else:
+        st.code("" if ans is None else str(ans), language="text")
+
+
+def _dataset_summary(recs: list[dict[str, Any]], max_preview: int = 30) -> None:
+    # Counts
+    task_codes = Counter([str(r.get("task_code", "UNK")) for r in recs])
+    modalities = Counter([str(r.get("modality", "UNK")) for r in recs])
+
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Records", len(recs))
+    c2.metric("Task codes", len(task_codes))
+    c3.metric("Modalities", len(modalities))
+
+    st.markdown("#### Task code distribution")
+    st.write(dict(task_codes.most_common()))
+
+    st.markdown("#### Modality distribution")
+    st.write(dict(modalities.most_common()))
+
+    # Preview table (safe, compact)
+    rows = []
+    for r in recs[:max_preview]:
+        sid = str(r.get("sample_id", "UNK"))
+        code = str(r.get("task_code", "UNK"))
+        mod = str(r.get("modality", "UNK"))
+
+        inputs = r.get("inputs", {}) or {}
+        img = inputs.get("image") or inputs.get("t0_image") or ""
+
+        rows.append(
+            {
+                "sample_id": sid,
+                "task_code": code,
+                "modality": mod,
+                "image": _safe_text(img, 80),
+                "answer": _safe_text(r.get("answer"), 60),
+            }
+        )
+
+    st.markdown("#### Preview (first records)")
+    st.dataframe(rows, use_container_width=True)
 
 
 def main() -> None:
@@ -53,19 +128,35 @@ def main() -> None:
     st.set_page_config(page_title="GeoSynthBench Dataset Viewer", layout="wide")
     st.title("GeoSynthBench Dataset Viewer")
 
-    jsonl_path_str = st.sidebar.text_input("dataset.jsonl path", value="data/E1/dataset.jsonl")
+    # --- dataset selection
+    datasets = _scan_datasets("data")
+    dataset_names = ["(manual path)"] + list(datasets.keys())
+
+    selected_dataset = st.sidebar.selectbox("Dataset", options=dataset_names, index=0)
+
+    default_path = "data/E1/dataset.jsonl"
+    if selected_dataset != "(manual path)":
+        default_path = str(datasets[selected_dataset])
+
+    jsonl_path_str = st.sidebar.text_input("dataset.jsonl path", value=default_path)
     jsonl_path = Path(jsonl_path_str)
 
     if not jsonl_path.exists():
         st.warning("JSONL path not found.")
+        st.info("Tip: Put datasets under data/<TASK>/dataset.jsonl (e.g., data/E1/dataset.jsonl).")
         return
 
+    # --- load records
     recs = read_jsonl(jsonl_path)
     if not recs:
         st.warning("No records in JSONL.")
         return
 
-    # Filters
+    # --- optional dataset summary pane
+    with st.expander("Dataset summary", expanded=True):
+        _dataset_summary(recs, max_preview=40)
+
+    # --- Filters
     task_codes = sorted({str(r.get("task_code", "UNK")) for r in recs})
     modalities = sorted({str(r.get("modality", "UNK")) for r in recs})
 
@@ -82,10 +173,30 @@ def main() -> None:
     filtered = [r for r in recs if keep(r)]
     st.sidebar.write(f"{len(filtered)} / {len(recs)} records")
 
-    idx = st.sidebar.slider(
-        "record index", min_value=0, max_value=max(0, len(filtered) - 1), value=0, step=1
+    if not filtered:
+        st.warning("No records match the filters.")
+        return
+
+    # --- navigation (Prev/Next + index)
+    if "idx" not in st.session_state:
+        st.session_state.idx = 0
+
+    cprev, cnext = st.sidebar.columns(2)
+    if cprev.button("◀ Prev"):
+        st.session_state.idx = max(0, st.session_state.idx - 1)
+    if cnext.button("Next ▶"):
+        st.session_state.idx = min(len(filtered) - 1, st.session_state.idx + 1)
+
+    idx = st.sidebar.number_input(
+        "record index",
+        min_value=0,
+        max_value=max(0, len(filtered) - 1),
+        value=int(st.session_state.idx),
+        step=1,
     )
-    r = filtered[idx]
+    st.session_state.idx = int(idx)
+
+    r = filtered[int(idx)]
 
     # Header
     st.subheader(
@@ -99,12 +210,17 @@ def main() -> None:
         st.code(r.get("prompt", ""), language="text")
 
         st.markdown("### Answer")
-        log.info(f"Answer: {r.get('answer', {})}")
-        st.json(r.get("answer", {}))
+        ans = r.get("answer", None)
+        log.info(f"Answer (raw): {ans}")
+        _answer_block(ans)
 
     with colB:
         st.markdown("### Oracle")
-        st.json(r.get("oracle", {}))
+        orc = r.get("oracle", None)
+        if isinstance(orc, (dict, list)):
+            st.json(orc)
+        else:
+            st.code("" if orc is None else str(orc), language="text")
 
         st.markdown("### Inputs")
         st.json(r.get("inputs", {}))
@@ -117,26 +233,25 @@ def main() -> None:
     if modality == "single":
         img = load_img(inputs.get("image"))
         mask_rgb = load_mask_as_rgb(inputs.get("mask"))
+
         c1, c2 = st.columns(2)
         with c1:
             st.write("RGB")
             if img is None:
                 st.warning("image not found")
             else:
-                st.image(img, width=True)
+                st.image(img, use_container_width=True)
         with c2:
             st.write("Mask (colored)")
             if mask_rgb is None:
                 st.info("mask not available")
             else:
-                st.image(mask_rgb, width=True)
+                st.image(mask_rgb, use_container_width=True)
 
     else:
         t0 = load_img(inputs.get("t0_image"))
         t1 = load_img(inputs.get("t1_image"))
-        change = load_mask_as_rgb(
-            inputs.get("change_mask")
-        )  # supports colored if semantic ids; otherwise shows binary as gray
+        change = load_mask_as_rgb(inputs.get("change_mask"))
 
         c1, c2 = st.columns(2)
         with c1:
@@ -144,22 +259,21 @@ def main() -> None:
             if t0 is None:
                 st.warning("t0 not found")
             else:
-                st.image(t0, width=True)
+                st.image(t0, use_container_width=True)
         with c2:
             st.write("t1")
             if t1 is None:
                 st.warning("t1 not found")
             else:
-                st.image(t1, width=True)
+                st.image(t1, use_container_width=True)
 
         st.write("Change mask")
         if change is None:
             st.info("change_mask not available")
         else:
-            st.image(change, width=True)
+            st.image(change, use_container_width=True)
 
-    # Quick debug log
-    log.info(f"Viewed record idx={idx} sample_id={r.get('sample_id')} task={r.get('task_code')}")
+    log.info(f"Viewed idx={idx} sample_id={r.get('sample_id')} task={r.get('task_code')}")
 
 
 if __name__ == "__main__":
