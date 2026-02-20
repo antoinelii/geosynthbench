@@ -25,7 +25,8 @@ def _pick_float(rng: np.random.Generator, v: float | FloatRange) -> float:
 
 @dataclass(frozen=True)
 class WorldGenConfig:
-    seed: int = 0
+    seed: int = 42
+    rng0 = np.random.default_rng(seed)
 
     # terrain
     terrain_amplitude_m: float = 30.0
@@ -35,11 +36,11 @@ class WorldGenConfig:
     terrain_noise_strength_m: float = 6.0
 
     # water / vegetation counts
-    n_water: int | IntRange = (0, 2)
-    n_veg: int | IntRange = (1, 3)
+    n_water: int | IntRange = (1, 3)
+    n_veg: int | IntRange = (1, 5)
 
     # settlements
-    n_settlements: int | IntRange = (2, 5)
+    n_settlements: int | IntRange = (3, 8)
     settlement_radius_m: FloatRange = (180.0, 400.0)
     min_dist_settlements_m: float = 500.0
     max_slope_settlement: float = 0.25  # ~ 25%
