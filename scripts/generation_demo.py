@@ -9,7 +9,7 @@ from typing import Any
 from geosynthbench.pipeline.run import build_one_record
 from geosynthbench.utils.logging import get_logger, setup_logging
 
-TASK_IDS_DEFAULT = ("e1", "d1", "s1", "n1")
+TASK_IDS_DEFAULT = ("e1", "d1", "s1", "n1", "a1")
 
 
 def _stable_seed(base_seed: int, task_id: str, k: int) -> int:
@@ -59,7 +59,7 @@ def main() -> None:
         "--tasks",
         type=str,
         default=",".join(TASK_IDS_DEFAULT),
-        help="Comma-separated list of task ids (default: e1,d1,s1,n1)",
+        help="Comma-separated list of task ids (default: e1,d1,s1,n1,a1)",
     )
     ap.add_argument("--per-task", type=int, default=3, help="Samples per task id")
     ap.add_argument("--seed", type=int, default=12345, help="Base seed for reproducibility")

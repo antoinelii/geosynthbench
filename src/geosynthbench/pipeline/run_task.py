@@ -8,7 +8,9 @@ from typing import Any
 import numpy as np
 
 from geosynthbench.gen.config import WorldGenConfig
+from geosynthbench.pipeline.types import RenderArtifacts
 from geosynthbench.pipeline.writer import DatasetWriter
+from geosynthbench.tasks.a1_road_plus_building import A1Config, A1RoadPlusBuildingTask
 from geosynthbench.tasks.d1_distance_to_water import D1Config, D1DistanceToWaterTask
 from geosynthbench.tasks.e1_elevation import E1Config, E1ElevationCompareTask
 from geosynthbench.tasks.n1_isolation import (
@@ -112,6 +114,38 @@ def make_n1_world_cfg(seed: int) -> WorldGenConfig:
         max_slope_road=0.18,
         buildings_per_settlement=(4, 10),
         building_size_m=(12.0, 24.0),
+        min_dist_buildings_m=5.0,
+        max_slope_building=0.25,
+        max_building_attempts=800,
+        require_connected_roads=True,
+        forbid_roads_in_water=True,
+        prefer_settlement_near_water=False,
+        prefer_water_distance_m=(60.0, 350.0),
+    )
+
+
+def make_a1_world_cfg(seed: int) -> WorldGenConfig:
+    # Favourable temporal config: enough settlements + connected roads + some existing buildings,
+    # but not too dense (so counting new ones is doable).
+    return WorldGenConfig(
+        seed=seed,
+        terrain_amplitude_m=40.0,
+        terrain_n_hills=(1, 3),
+        terrain_hill_sigma_m=(450.0, 1100.0),
+        terrain_noise_scale_m=520.0,
+        terrain_noise_strength_m=2.5,
+        n_water=(0, 1),
+        n_veg=(2, 5),
+        n_settlements=(3, 5),
+        settlement_radius_m=(180.0, 320.0),
+        min_dist_settlements_m=520.0,
+        max_slope_settlement=0.30,
+        roads_mode="mst",
+        extra_edges=0,
+        road_width_m=8.0,
+        max_slope_road=0.18,
+        buildings_per_settlement=(2, 5),
+        building_size_m=(12.0, 22.0),
         min_dist_buildings_m=5.0,
         max_slope_building=0.25,
         max_building_attempts=800,
@@ -355,4 +389,94 @@ def build_n1_record(
 
     raise RuntimeError(
         f"[N1] FAILED to build {sample_id} after {max_attempts} attempts: {last_err}"
+    )
+
+
+def build_a1_record(
+    *,
+    sample_id: str,
+    out_dir: str | Path,
+    seed: int,
+    max_attempts: int = 120,
+) -> dict[str, Any]:
+    log = get_logger()
+    out_path = Path(out_dir)
+    writer = DatasetWriter.create(out_path)
+
+    sample_idx = _parse_sample_idx(sample_id)
+    rng = np.random.default_rng(seed)
+
+    task = A1RoadPlusBuildingTask()
+    cfg0 = make_a1_world_cfg(seed=0)  # seed overridden via rng pattern (same style as D1/N1)
+    task_cfg = A1Config(world_cfg=cfg0)
+
+    last_err: Exception | None = None
+    for attempt in range(max_attempts):
+        try:
+            world_t0 = task.generate_t0(task_cfg, rng)
+
+            # Build t1 inside task, then render pair
+            tmp = task.build_record(
+                sample_idx=sample_idx,
+                cfg=task_cfg,
+                world_t0=world_t0,
+                render=RenderArtifacts(  # will be overwritten below (we just need a placeholder type)
+                    sample_dir=Path(""),
+                    t0_rgb=Path(""),
+                    t0_mask=None,
+                    t0_elev=None,
+                    t1_rgb=None,
+                    t1_mask=None,
+                    change_mask=None,
+                ),
+                rng=rng,
+            )
+            world_t1 = tmp.get("_debug_world_t1")
+            if world_t1 is None:
+                raise ValueError("A1 internal error: missing world_t1")
+
+            # Render pair robustly: use a dedicated method if present, else fallback
+            render = None
+            if hasattr(writer, "render_and_save_pair"):
+                render = writer.render_and_save_pair(
+                    sample_idx=sample_idx, world_t0=world_t0, world_t1=world_t1, rng=rng
+                )
+            else:
+                # minimal fallback (depends on your writer implementation)
+                r0 = writer.render_and_save_t0(sample_idx=sample_idx, world_t0=world_t0, rng=rng)
+                if hasattr(writer, "render_and_save_t1"):
+                    r1 = writer.render_and_save_t1(
+                        sample_idx=sample_idx, world_t1=world_t1, rng=rng
+                    )
+                    # merge the two objects (duck-typing)
+                    for k, v in r1.__dict__.items():
+                        setattr(r0, k, v)
+                    render = r0
+                else:
+                    raise ValueError(
+                        "DatasetWriter missing render_and_save_pair/render_and_save_t1"
+                    )
+
+            # Rebuild final record with real render artifacts
+            record = task.build_record(
+                sample_idx=sample_idx,
+                cfg=task_cfg,
+                world_t0=world_t0,
+                render=render,
+                rng=rng,
+            )
+            record.pop("_debug_world_t1", None)
+
+            record = _normalize_record_for_viewer(record, task_code="a1", sample_id=sample_id)
+            log.success(
+                f"[A1] built {sample_id} OK (attempt={attempt}) | answer={record.get('answer')}"
+            )
+            return record
+
+        except ValueError as e:
+            last_err = e
+            continue
+
+    raise RuntimeError(
+        f"[A1] FAILED to build {sample_id} after {max_attempts} attempts: {last_err}"
     )
