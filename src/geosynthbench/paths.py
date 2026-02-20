@@ -8,3 +8,4 @@ SCRIPTS_DIR = SRC_DIR / "scripts"
 
 DATA_DIR = ROOT_PROJECT_DIR / "data"
 OUTPUTS_DIR = ROOT_PROJECT_DIR / "outputs"
+DATA_DEMO_DIR = ROOT_PROJECT_DIR / "data_demo"
