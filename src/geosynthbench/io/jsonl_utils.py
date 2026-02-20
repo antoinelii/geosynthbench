@@ -68,3 +68,11 @@ def append_world_t0_jsonl(
     paths.jsonl_path.parent.mkdir(parents=True, exist_ok=True)
     with paths.jsonl_path.open("a", encoding="utf-8") as f:
         f.write(json.dumps(record, ensure_ascii=False) + "\n")
+
+
+def read_jsonl_record(path: Path, idx: int) -> dict[str, Any]:
+    with path.open("r", encoding="utf-8") as f:
+        for i, line in enumerate(f):
+            if i == idx:
+                return json.loads(line)
+    raise IndexError(f"jsonl index {idx} out of range: {path}")
