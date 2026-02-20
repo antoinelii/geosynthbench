@@ -118,7 +118,7 @@ def _dataset_summary(recs: list[dict[str, Any]], max_preview: int = 30) -> None:
         )
 
     st.markdown("#### Preview (first records)")
-    st.dataframe(rows, use_container_width=True)
+    st.dataframe(rows, width=True)
 
 
 def main() -> None:
@@ -214,13 +214,13 @@ def main() -> None:
             if img is None:
                 st.warning("image not found")
             else:
-                st.image(img, use_container_width=True)
+                st.image(img, width=True)
         with c2:
             st.write("Mask (colored)")
             if mask_rgb is None:
                 st.info("mask not available")
             else:
-                st.image(mask_rgb, use_container_width=True)
+                st.image(mask_rgb, width=True)
 
     else:
         t0 = load_img(inputs.get("t0_image"))
@@ -233,19 +233,19 @@ def main() -> None:
             if t0 is None:
                 st.warning("t0 not found")
             else:
-                st.image(t0, use_container_width=True)
+                st.image(t0, width=True)
         with c2:
             st.write("t1")
             if t1 is None:
                 st.warning("t1 not found")
             else:
-                st.image(t1, use_container_width=True)
+                st.image(t1, width=True)
 
         st.write("Change mask")
         if change is None:
             st.info("change_mask not available")
         else:
-            st.image(change, use_container_width=True)
+            st.image(change, width=True)
 
     # Text fields
     colA, colB = st.columns([2, 1])
