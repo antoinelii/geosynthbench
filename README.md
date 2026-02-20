@@ -4,6 +4,15 @@ Synthetic Geospatial Dataset for Structured Reasoning Evaluation
 
 <p align="left"> <img src="https://img.shields.io/badge/python-3.12-blue.svg" /> <img src="https://img.shields.io/badge/uv-managed-blueviolet.svg" /> <img src="https://img.shields.io/badge/lint-ruff-informational.svg" /> <img src="https://img.shields.io/badge/tests-pytest-lightgrey.svg" /> <img src="https://img.shields.io/badge/license-MIT-black.svg" /> </p>
 
+## Example
+
+### Generated image (RGB + Semantic mask)
+
+<p >
+  <img src="assets/example_rgb_mask.png" alt="ex_img" width="800"/>
+  <img src="assets/example_annotation.png" alt="ex_annot" width="800"/>
+</p>
+
 ## 🚀 Demo
 
 This project provides a minimal end-to-end demo:
