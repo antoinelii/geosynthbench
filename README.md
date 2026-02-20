@@ -4,6 +4,20 @@ Synthetic Geospatial Dataset for Structured Reasoning Evaluation
 
 <p align="left"> <img src="https://img.shields.io/badge/python-3.12-blue.svg" /> <img src="https://img.shields.io/badge/uv-managed-blueviolet.svg" /> <img src="https://img.shields.io/badge/lint-ruff-informational.svg" /> <img src="https://img.shields.io/badge/tests-pytest-lightgrey.svg" /> <img src="https://img.shields.io/badge/license-MIT-black.svg" /> </p>
 
+## 🚀 Demo
+
+This project provides a minimal end-to-end demo:
+
+Generate a small synthetic dataset
+
+Launch the interactive dataset viewer
+
+```bash
+uv sync
+uv run python scripts/generation_demo.py
+uv run streamlit run apps/view_dataset_app.py
+```
+
 ## Overview
 
 GeoSynthBench is a controllable synthetic data generator for evaluating structured geospatial reasoning in multimodal models.
@@ -28,22 +42,6 @@ Each example includes rendered world state (t₀, optional t₁), a reasoning qu
 
 The world state is generated symbolically first, then rendered — ensuring traceable reasoning and perfect labels.
 
-## Overview
-
-GeoSynthBench is a modular synthetic benchmark designed to evaluate **structured spatial reasoning** in satellite and aerial imagery.
-
-Instead of focusing on perception-only tasks (captioning, detection, segmentation), this project targets:
-
-- Elevation reasoning
-- Terrain slope reasoning
-- Hydrological proximity
-- Road-network topology
-- Graph-based isolation
-
-All tasks are grounded in a deterministic world model and provide exact geometric or network-based oracle answers.
-
----
-
 ## Why This Project?
 
 ### Limitations of Current VLM Datasets
@@ -57,8 +55,6 @@ Most existing vision-language benchmarks:
 - Rarely support controlled synthetic variation
 
 GeoSynthBench addresses these gaps.
-
----
 
 ## Core Design
 
@@ -75,8 +71,6 @@ Each sample is generated from a `WorldState` containing:
 
 All reasoning is computed from geometry — never from image pixels.
 
----
-
 ### 2. Synthetic Scene Generation
 
 For each sample:
@@ -89,129 +83,89 @@ For each sample:
 
 ## Implemented Tasks
 
-### E1 — Elevation Comparison
+- E1 — Elevation Comparison : Which settlement is at higher elevation?
 
-Which settlement is at higher elevation?
+  Oracle: Mean elevation from height field
 
-Oracle:
+- D1 — Distance to Water : Which settlement is closer to water?
 
-- Mean elevation from height field
+  Oracle: Minimum geometric distance to water polygon
 
----
+- S1 — Slope Comparison : Which settlement is on steeper terrain?
 
-### D1 — Distance to Water
+  Oracle: Terrain slope sampled at settlement center
 
-Which settlement is closer to water?
+- N1 — Network Isolation : Which settlement is most isolated in the road network?
 
-Oracle:
+  Oracle : Isolation metric (Mean shortest-path distance to all other settlements)
 
-- Minimum geometric distance to water polygon
+- A1 - Entities addition count / temporal reasoning : How many new buildings did the new road create?
 
----
-
-### S1 — Slope Comparison
-
-Which settlement is on steeper terrain?
-
-Oracle:
-
-- Terrain slope sampled at settlement center
-
----
-
-### N1 — Network Isolation
-
-Which settlement is most isolated in the road network?
-
-Isolation metric:
-
-- Mean shortest-path distance to all other settlements
-- Edge weights = curved road polyline length
-
----
+  Oracle: Building difference count (from the world model difference)
 
 ## Dataset Format
 
 One JSON object per line:
 
-'''json
+```json
 {
-"sample_id": "00012",
-"task_code": "N1",
-"modality": "single",
-"inputs": {
-"image": "data/N1/00012/rgb.png",
-"mask": "data/N1/00012/mask.png"
-},
-"prompt": "...",
-"answer": "C",
-"oracle": {
-"isolation_scores_m_by_label": { ... }
+  "sample_id": "00012",
+  "task_code": "N1",
+  "modality": "single",
+  "inputs": {
+    "image": "data/N1/00012/rgb.png",
+    "mask": "data/N1/00012/mask.png"
+  },
+  "prompt": "...",
+  "answer": "C",
+  "oracle": {
+    "isolation_scores_m_by_label": { ... }
+  }
 }
-}
-'''
-
-## Repository Structure
-
-'''
-src/geosynthbench/
-world/ # World model + terrain
-gen/ # Procedural generation
-render/ # RGB + semantic rendering
-tasks/ # E1, D1, S1, N1
-pipeline/ # Dataset writer
-scripts/
-generate\_\*.py
-view_dataset.py
-data/
-E1/
-D1/
-S1/
-N1/
-'''
+```
 
 ## Visualization
 
 Run:
 
-'''bash
+```bash
 uv run streamlit run scripts/view_dataset.py
-'''
+```
 
 Features:
 
-Dataset selector
+- Dataset selector
 
-Task filtering
+- Task filtering
 
-Prompt + answer display
+- Prompt + answer display
 
-Oracle inspection
+- Oracle inspection
 
-RGB + semantic mask visualization
+- RGB + semantic mask visualization
 
-Dataset summary statistics
+- Dataset summary statistics
 
 ## Design Philosophy
 
-Deterministic oracle
+- Deterministic oracle
 
-Minimal over-engineering
+- Minimal over-engineering
 
-Modular task pipeline
+- Modular task pipeline
 
-Geometry-first reasoning
+- Geometry-first reasoning
 
-Reproducible synthetic generation
+- Reproducible synthetic generation
 
 ## Future Work
 
-Temporal change reasoning
+- Temporal change reasoning
 
-Multi-hop spatial reasoning
+- Multi-hop spatial reasoning
 
-Difficulty scaling
+- Difficulty scaling
 
-VLM fine-tuning experiments
+- VLM fine-tuning experiments
 
-Real-to-synthetic transfer
+- Real-to-synthetic transfer
