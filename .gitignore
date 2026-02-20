@@ -38,3 +38,5 @@ build/
 data/*
 
 node_modules/
+
+useless/

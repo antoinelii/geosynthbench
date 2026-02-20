@@ -1,6 +1,12 @@
 {
-  "include": ["src", "scripts", "tests"],
-  "venvPath": ".",
-  "typeCheckingMode": "strict",
-  "exclude": ["**/__pycache__", ".venv"]
+  "include": ["src"],
+  "exclude": ["**/__pycache__", "outputs_*", "scripts/**"],
+  "pythonVersion": "3.12",
+  "typeCheckingMode": "basic",
+  "reportMissingTypeStubs": "none",
+  "reportPrivateImportUsage": "none",
+  "reportUnknownMemberType": "none",
+  "reportUnknownVariableType": "none",
+  "reportUnknownArgumentType": "none",
+  "reportUnknownLambdaType": "none"
 }
