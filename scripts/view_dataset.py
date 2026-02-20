@@ -10,45 +10,14 @@ import numpy as np
 import streamlit as st
 from PIL import Image
 
+from geosynthbench.paths import ROOT_PROJECT_DIR
 from geosynthbench.render.semantic import semantic_mask_to_rgb
 from geosynthbench.utils.logging import get_logger, setup_logging
 
 
-def read_jsonl(path: Path) -> list[dict[str, Any]]:
-    out: list[dict[str, Any]] = []
-    with path.open("r", encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if not line:
-                continue
-            out.append(json.loads(line))
-    return out
-
-
-def load_img(path: str | None):
-    if not path:
-        return None
-    p = Path(path)
-    if not p.exists():
-        return None
-    return Image.open(p)
-
-
-def load_mask_as_rgb(path: str | None):
-    if not path:
-        return None
-    p = Path(path)
-    if not p.exists():
-        return None
-    m = np.array(Image.open(p))
-    if m.ndim == 3:
-        return Image.fromarray(m)
-    return Image.fromarray(semantic_mask_to_rgb(m))
-
-
-def _scan_datasets(data_root: str = "data") -> dict[str, Path]:
+def _scan_datasets(data_root: Path = Path("data_demo")) -> dict[str, Path]:
     """
-    Finds data/<NAME>/dataset.jsonl
+    Finds <data_root>/<NAME>/dataset.jsonl
     Returns mapping: dataset_name -> jsonl_path
     """
     root = Path(data_root)
@@ -62,6 +31,50 @@ def _scan_datasets(data_root: str = "data") -> dict[str, Path]:
         if p.exists():
             out[d.name] = p
     return out
+
+
+def read_jsonl(path: Path) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
+    with path.open("r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            out.append(json.loads(line))
+    return out
+
+
+def get_absolute_path(p: Path) -> Path:
+    """
+    If p is absolute, return as Path.
+    If p is relative, interpret as relative to ROOT_PROJECT_DIR and return absolute Path.
+    """
+    path = Path(p)
+    if path.is_absolute():
+        return path
+    else:
+        return ROOT_PROJECT_DIR / path
+
+
+def load_img(path: str | None) -> Image.Image | None:
+    if not path:
+        return None
+    p = get_absolute_path(Path(path))
+    if not p.exists():
+        return None
+    return Image.open(str(p))
+
+
+def load_mask_as_rgb(path: str | None) -> Image.Image | None:
+    if not path:
+        return None
+    p = get_absolute_path(Path(path))
+    if not p.exists():
+        return None
+    m = np.array(Image.open(str(p)))
+    if m.ndim == 3:
+        return Image.fromarray(m)
+    return Image.fromarray(semantic_mask_to_rgb(m))
 
 
 def _safe_text(x: Any, max_len: int = 120) -> str:
@@ -122,6 +135,9 @@ def _dataset_summary(recs: list[dict[str, Any]], max_preview: int = 30) -> None:
 
 
 def main() -> None:
+    root_data_dir_str = st.sidebar.text_input("Root data dir", value="data_demo")
+    root_data_dir = Path(root_data_dir_str)
+
     setup_logging()
     log = get_logger()
 
@@ -129,12 +145,12 @@ def main() -> None:
     st.title("GeoSynthBench Dataset Viewer")
 
     # --- dataset selection
-    datasets = _scan_datasets("data")
+    datasets = _scan_datasets(root_data_dir)
     dataset_names = ["(manual path)"] + list(datasets.keys())
 
     selected_dataset = st.sidebar.selectbox("Dataset", options=dataset_names, index=0)
 
-    default_path = "data/E1/dataset.jsonl"
+    default_path = "data_demo/e1/dataset.jsonl"
     if selected_dataset != "(manual path)":
         default_path = str(datasets[selected_dataset])
 
@@ -143,7 +159,9 @@ def main() -> None:
 
     if not jsonl_path.exists():
         st.warning("JSONL path not found.")
-        st.info("Tip: Put datasets under data/<TASK>/dataset.jsonl (e.g., data/E1/dataset.jsonl).")
+        st.info(
+            "Tip: Put datasets under data_demo/<TASK>/dataset.jsonl (e.g., data_demo/e1/dataset.jsonl)."
+        )
         return
 
     # --- load records
@@ -159,10 +177,10 @@ def main() -> None:
     selected_task = st.sidebar.selectbox("task_code", options=["(all)"] + task_codes)
     selected_mod = st.sidebar.selectbox("modality", options=["(all)"] + modalities)
 
-    def keep(r: dict[str, Any]) -> bool:
-        if selected_task != "(all)" and str(r.get("task_code", "UNK")) != selected_task:
+    def keep(rec: dict[str, Any]) -> bool:
+        if selected_task != "(all)" and str(rec.get("task_code", "UNK")) != selected_task:
             return False
-        if selected_mod != "(all)" and str(r.get("modality", "UNK")) != selected_mod:
+        if selected_mod != "(all)" and str(rec.get("modality", "UNK")) != selected_mod:
             return False
         return True
 
@@ -192,15 +210,15 @@ def main() -> None:
     )
     st.session_state.idx = int(idx)
 
-    r = filtered[int(idx)]
+    rec = filtered[int(idx)]
 
     # Header
     st.subheader(
-        f"Sample {r.get('sample_id', 'UNK')} — {r.get('task_code', 'UNK')} ({r.get('modality','UNK')})"
+        f"Sample {rec.get('sample_id', 'UNK')} — {rec.get('task_code', 'UNK')} ({rec.get('modality','UNK')})"
     )
 
-    inputs = r.get("inputs", {}) or {}
-    modality = str(r.get("modality", "single"))
+    inputs = rec.get("inputs", {}) or {}
+    modality = str(rec.get("modality", "single"))
 
     # Images
     st.markdown("### Visuals")
@@ -214,18 +232,17 @@ def main() -> None:
             if img is None:
                 st.warning("image not found")
             else:
-                st.image(img, width=True)
+                st.image(img, width="content")
         with c2:
             st.write("Mask (colored)")
             if mask_rgb is None:
                 st.info("mask not available")
             else:
-                st.image(mask_rgb, width=True)
+                st.image(mask_rgb, width="content")
 
     else:
         t0 = load_img(inputs.get("t0_image"))
         t1 = load_img(inputs.get("t1_image"))
-        change = load_mask_as_rgb(inputs.get("change_mask"))
 
         c1, c2 = st.columns(2)
         with c1:
@@ -233,47 +250,41 @@ def main() -> None:
             if t0 is None:
                 st.warning("t0 not found")
             else:
-                st.image(t0, width=True)
+                st.image(t0, width="content")
         with c2:
             st.write("t1")
             if t1 is None:
                 st.warning("t1 not found")
             else:
-                st.image(t1, width=True)
-
-        st.write("Change mask")
-        if change is None:
-            st.info("change_mask not available")
-        else:
-            st.image(change, width=True)
+                st.image(t1, width="content")
 
     # Text fields
     colA, colB = st.columns([2, 1])
     with colA:
         st.markdown("### Prompt")
-        st.code(r.get("prompt", ""), language="text")
+        st.code(rec.get("prompt", ""), language="text")
 
         st.markdown("### Answer")
-        ans = r.get("answer", None)
+        ans = rec.get("answer", None)
         log.info(f"Answer (raw): {ans}")
         _answer_block(ans)
 
     with colB:
         st.markdown("### Oracle")
-        orc = r.get("oracle", None)
+        orc = rec.get("oracle", None)
         if isinstance(orc, (dict, list)):
             st.json(orc)
         else:
             st.code("" if orc is None else str(orc), language="text")
 
         st.markdown("### Inputs")
-        st.json(r.get("inputs", {}))
+        st.json(rec.get("inputs", {}))
 
     # --- optional dataset summary pane
     with st.expander("Dataset summary", expanded=True):
         _dataset_summary(recs, max_preview=40)
 
-    log.info(f"Viewed idx={idx} sample_id={r.get('sample_id')} task={r.get('task_code')}")
+    log.info(f"Viewed idx={idx} sample_id={rec.get('sample_id')} task={rec.get('task_code')}")
 
 
 if __name__ == "__main__":
