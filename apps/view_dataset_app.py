@@ -129,12 +129,12 @@ def main() -> None:
     st.title("GeoSynthBench Dataset Viewer")
 
     # --- dataset selection
-    datasets = _scan_datasets("data")
+    datasets = _scan_datasets("data_demo")
     dataset_names = ["(manual path)"] + list(datasets.keys())
 
     selected_dataset = st.sidebar.selectbox("Dataset", options=dataset_names, index=0)
 
-    default_path = "data/E1/dataset.jsonl"
+    default_path = "data_demo/E1/dataset.jsonl"
     if selected_dataset != "(manual path)":
         default_path = str(datasets[selected_dataset])
 
@@ -143,7 +143,9 @@ def main() -> None:
 
     if not jsonl_path.exists():
         st.warning("JSONL path not found.")
-        st.info("Tip: Put datasets under data/<TASK>/dataset.jsonl (e.g., data/E1/dataset.jsonl).")
+        st.info(
+            "Tip: Put datasets under data_demo/<TASK>/dataset.jsonl (e.g., data_demo/E1/dataset.jsonl)."
+        )
         return
 
     # --- load records
