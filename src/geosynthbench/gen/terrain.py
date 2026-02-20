@@ -5,7 +5,9 @@ import numpy as np
 from geosynthbench.world.raster import HeightField, RasterTransform
 
 
-def _value_noise_2d(rng: np.random.Generator, h: int, w: int, scale_px: float) -> np.ndarray:
+def _value_noise_2d(
+    rng: np.random.Generator, h: int, w: int, scale_px: float
+) -> np.ndarray[tuple[int, int], np.dtype[np.float32]]:
     """
     Very simple smooth-ish noise: sample coarse grid, bilinear upsample.
     Keeps deps minimal (no external noise lib).
@@ -33,8 +35,15 @@ def _value_noise_2d(rng: np.random.Generator, h: int, w: int, scale_px: float) -
     return out.astype(np.float32)
 
 
-def generate_terrain(tr: RasterTransform, rng: np.random.Generator, amplitude_m: float, n_hills: int,
-                     hill_sigma_m_range: tuple[float, float], noise_scale_m: float, noise_strength_m: float) -> HeightField:
+def generate_terrain(
+    tr: RasterTransform,
+    rng: np.random.Generator,
+    amplitude_m: float,
+    n_hills: int,
+    hill_sigma_m_range: tuple[float, float],
+    noise_scale_m: float,
+    noise_strength_m: float,
+) -> HeightField:
     H, W = tr.height_px, tr.width_px
     elev = np.zeros((H, W), dtype=np.float32)
 

@@ -9,26 +9,33 @@ from geosynthbench.gen.settlements import generate_settlements
 from geosynthbench.gen.terrain import generate_terrain
 from geosynthbench.gen.vegetation import generate_vegetation
 from geosynthbench.gen.water import generate_water
+from geosynthbench.world.raster import RasterTransform
 from geosynthbench.world.validate import hard_violations, validate_world
 from geosynthbench.world.world_state import WorldState
-from geosynthbench.world.raster import RasterTransform
 
 
-def generate_world(tr: RasterTransform, cfg: WorldGenConfig, *, max_retries: int = 30) -> WorldState:
+def generate_world(
+    tr: RasterTransform, cfg: WorldGenConfig, *, max_retries: int = 30
+) -> WorldState:
     """
     Full world generation with hard-rule enforcement:
     retry whole world if hard violations remain.
     """
     for attempt in range(max_retries):
-        rng = np.random.default_rng(cfg.seed + attempt * 10_000)
+        random_seed = int(cfg.rng0.integers(0, 2**63 - 1, dtype=np.int64))
+        ss = np.random.SeedSequence([random_seed, attempt])
+        rng_terrain, rng_water, rng_veg, rng_settlements, rng_roads, rng_buildings = [
+            np.random.default_rng(s) for s in ss.spawn(6)
+        ]
+        # rng = np.random.default_rng(cfg.seed + attempt * 10_000)
 
         world = WorldState(tr=tr)
 
         # 1) terrain
-        n_hills = cfg.pick_int(rng, cfg.terrain_n_hills)
+        n_hills = cfg.pick_int(rng_terrain, cfg.terrain_n_hills)
         world.terrain = generate_terrain(
             tr=tr,
-            rng=rng,
+            rng=rng_terrain,
             amplitude_m=cfg.terrain_amplitude_m,
             n_hills=n_hills,
             hill_sigma_m_range=cfg.terrain_hill_sigma_m,
@@ -37,18 +44,18 @@ def generate_world(tr: RasterTransform, cfg: WorldGenConfig, *, max_retries: int
         )
 
         # 2) water
-        n_water = cfg.pick_int(rng, cfg.n_water)
-        generate_water(world, rng, n_water=n_water)
+        n_water = cfg.pick_int(rng_water, cfg.n_water)
+        generate_water(world, rng_water, n_water=n_water)
 
         # 3) vegetation (clips water internally)
-        n_veg = cfg.pick_int(rng, cfg.n_veg)
-        generate_vegetation(world, rng, n_veg=n_veg)
+        n_veg = cfg.pick_int(rng_veg, cfg.n_veg)
+        generate_vegetation(world, rng_veg, n_veg=n_veg)
 
         # 4) settlements
-        n_sett = cfg.pick_int(rng, cfg.n_settlements)
+        n_sett = cfg.pick_int(rng_settlements, cfg.n_settlements)
         generate_settlements(
             world,
-            rng,
+            rng_settlements,
             n_settlements=n_sett,
             radius_range=cfg.settlement_radius_m,
             min_dist_settlements_m=cfg.min_dist_settlements_m,
@@ -56,12 +63,18 @@ def generate_world(tr: RasterTransform, cfg: WorldGenConfig, *, max_retries: int
         )
 
         # 5) roads
-        generate_roads(world, rng, mode=cfg.roads_mode, extra_edges=cfg.extra_edges, width_m=cfg.road_width_m)
+        generate_roads(
+            world,
+            rng_roads,
+            mode=cfg.roads_mode,
+            extra_edges=cfg.extra_edges,
+            width_m=cfg.road_width_m,
+        )
 
         # 6) buildings
         generate_buildings(
             world,
-            rng,
+            rng_buildings,
             buildings_per_settlement=cfg.buildings_per_settlement,
             size_range=cfg.building_size_m,
             min_dist_buildings_m=cfg.min_dist_buildings_m,

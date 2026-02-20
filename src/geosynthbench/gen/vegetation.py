@@ -4,13 +4,14 @@ import numpy as np
 from shapely.geometry import Polygon
 
 from geosynthbench.world.entities import VegetationPatch
-from geosynthbench.world.world_state import WorldState
 from geosynthbench.world.types import VegId
+from geosynthbench.world.world_state import WorldState
 
 
 def _blob(rng: np.random.Generator, cx: float, cy: float, base_r: float, n_pts: int) -> Polygon:
     import numpy as _np
     from shapely.geometry import Polygon as _Polygon
+
     angles = _np.linspace(0, 2 * _np.pi, n_pts, endpoint=False)
     radii = base_r * (0.70 + 0.60 * rng.random(n_pts))
     xs = cx + radii * _np.cos(angles)
@@ -39,6 +40,15 @@ def generate_vegetation(world: WorldState, rng: np.random.Generator, n_veg: int)
         if poly.is_empty or poly.area < 10.0:
             continue
 
-        out.append(VegetationPatch(id=VegId(f"v{i}"), polygon=poly, density=float(rng.uniform(0.6, 1.0))))
+        # convert to list of polys if we get a multi-poly result from difference
+        if poly.geom_type == "Polygon":
+            polys = [poly]
+        else:
+            polys = list(poly.geoms)
+
+        for p in polys:
+            out.append(
+                VegetationPatch(id=VegId(f"v{i}"), polygon=p, density=float(rng.uniform(0.6, 1.0)))
+            )
 
     world.vegetation = out
