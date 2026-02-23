@@ -1,39 +1,45 @@
 from __future__ import annotations
 
+from typing import Any, cast
+
 import networkx as nx
 import numpy as np
 from shapely.geometry import LineString, Point
 
 from geosynthbench.world.entities import RoadNetwork, RoadSegment
-from geosynthbench.world.types import RoadId
+from geosynthbench.world.types import RoadId, SettlementId
 from geosynthbench.world.world_state import WorldState
 
 
-def _complete_graph_edges(world: WorldState) -> list[tuple[int, int, float]]:
+def _complete_graph_edges(world: WorldState) -> list[tuple[SettlementId, SettlementId, float]]:
     # settlements indexed by list order
-    edges: list[tuple[int, int, float]] = []
+    edges: list[tuple[SettlementId, SettlementId, float]] = []
     for i, a in enumerate(world.settlements):
         for j, b in enumerate(world.settlements):
             if j <= i:
                 continue
             d = float(a.center.distance(b.center))
-            edges.append((i, j, d))
+            # edges.append((i, j, d))
+            edges.append((a.id, b.id, d))  # use SettlementId instead of index
     return edges
 
 
-def _mst_edges(world: WorldState) -> list[tuple[int, int]]:
-    g = nx.Graph()
+def _mst_edges(world: WorldState) -> list[tuple[SettlementId, SettlementId]]:
+    g: nx.Graph[SettlementId] = nx.Graph()  # later convert to SettlementId keys
     edges = _complete_graph_edges(world)
-    for i, j, d in edges:
-        g.add_edge(i, j, weight=d)
-    mst = nx.minimum_spanning_tree(g, weight="weight")
-    return [(int(u), int(v)) for (u, v) in mst.edges()]
+    for a_id, b_id, d in edges:
+        g.add_edge(a_id, b_id, weight=d)
+
+    mst_any: nx.Graph[Any] = nx.minimum_spanning_tree(g, weight="weight")  # type: ignore
+    mst = cast(nx.Graph[SettlementId], mst_any)
+
+    return [(u, v) for (u, v) in mst.edges()]
 
 
-def _ring_edges(n: int) -> list[tuple[int, int]]:
+def _ring_edges(world: WorldState, n: int) -> list[tuple[SettlementId, SettlementId]]:
     if n < 2:
         return []
-    return [(i, (i + 1) % n) for i in range(n)]
+    return [(world.settlements[i].id, world.settlements[(i + 1) % n].id) for i in range(n)]
 
 
 def _chaikin_smooth(coords: list[tuple[float, float]], n_iters: int) -> list[tuple[float, float]]:
@@ -109,7 +115,7 @@ def generate_roads(
     if mode in ("mst", "mst+extras", "dense"):
         base = _mst_edges(world)
     elif mode == "ring":
-        base = _ring_edges(n)
+        base = _ring_edges(world, n)
     else:
         base = _mst_edges(world)
 
@@ -117,28 +123,31 @@ def generate_roads(
 
     # extras: add short edges not already in set
     if mode in ("mst+extras", "dense"):
-        candidates = []
+        candidates: list[tuple[float, SettlementId, SettlementId]] = []
         for i in range(n):
             for j in range(i + 1, n):
                 if (i, j) in chosen:
                     continue
-                d = float(world.settlements[i].center.distance(world.settlements[j].center))
-                candidates.append((d, i, j))
+                settlement_i = world.settlements[i]
+                settlement_j = world.settlements[j]
+                d = float(settlement_i.center.distance(settlement_j.center))
+                candidates.append((d, settlement_i.id, settlement_j.id))
         candidates.sort(key=lambda t: t[0])
 
         k = extra_edges if mode == "mst+extras" else min(len(candidates), max(extra_edges, n))
         # pick among the shortest with some randomness
         top = candidates[: max(10, 3 * k)]
         rng.shuffle(top)
-        for _, i, j in top[:k]:
-            chosen.add((i, j))
+        for _, i_id, j_id in top[:k]:
+            chosen.add((i_id, j_id))
 
     # build segments
-    for idx, (i, j) in enumerate(sorted(chosen)):
-        a = world.settlements[i]
-        b = world.settlements[j]
+    for idx, (i_id, j_id) in enumerate(sorted(chosen)):
+        a = world.settlement_by_id(i_id)
+        b = world.settlement_by_id(j_id)
         line = LineString([(a.center.x, a.center.y), (b.center.x, b.center.y)])
         line = _curved_link(a.center, b.center, rng=rng, jitter_frac=0.2, smooth_iters=2)
+        # later add some road generation rules based on physics
         segs.append(
             RoadSegment(
                 id=RoadId(f"r{idx}"),

@@ -50,3 +50,9 @@ class WorldState:
         for b in self.buildings:
             out.setdefault(b.settlement_id, []).append(b)
         return out
+
+    def settlement_by_id(self, id: SettlementId) -> Settlement:
+        for s in self.settlements:
+            if s.id == id:
+                return s
+        raise ValueError(f"Settlement with id {id} not found")
