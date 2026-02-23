@@ -9,10 +9,11 @@ from PIL import Image, ImageDraw
 from shapely.geometry import LineString, Polygon
 from shapely.ops import unary_union
 
+from geosynthbench.world.types import LayerKind
 from geosynthbench.world.world_state import WorldState
 
 
-def _poly_to_px_rings(
+def poly_to_px_rings(
     world: WorldState, poly: Polygon
 ) -> tuple[list[tuple[float, float]], list[list[tuple[float, float]]]]:
     """
@@ -50,35 +51,35 @@ def _draw_poly_L(
             draw.polygon(hole, fill=0)
 
 
-def _draw_polygon_mask(draw: ImageDraw.ImageDraw, world: Any, poly: Polygon) -> None:
+def _draw_polygon_mask(draw: ImageDraw.ImageDraw, world: WorldState, poly: Polygon) -> None:
     """
     Draw shapely Polygon (with holes) into an L mask.
-    Uses your existing _poly_to_px_rings(world, poly) helper.
+    Uses your existing poly_to_px_rings(world, poly) helper.
     """
     if poly.is_empty:
         return
-    ext, holes = _poly_to_px_rings(world, poly)  # noqa: F821 (provided by your renderer module)
+    ext, holes = poly_to_px_rings(world, poly)
     _draw_poly_L(draw, ext, holes)
 
 
 def _draw_linestring_buffer_mask(
-    draw: ImageDraw.ImageDraw, world: Any, line: LineString, width_m: float
+    draw: ImageDraw.ImageDraw, world: WorldState, line: LineString, width_m: float
 ) -> None:
     if line.is_empty:
         return
-    poly = line.buffer(width_m / 2.0, cap_style=2, join_style=2)
+    poly = line.buffer(width_m / 2.0, cap_style="round", join_style="mitre")
     _draw_polygon_mask(draw, world, poly)
 
 
 @dataclass(frozen=True)
 class MaskBuildResult:
-    masks: dict[str, np.ndarray]  # bool[H,W]
+    masks: dict[LayerKind, np.ndarray]  # bool[H,W]
     building_items: list[dict[str, Any]]  # {id, settlement_id, mask}
     settlement_polys: dict[str, Polygon]  # for debug
 
 
 def build_masks_from_world(
-    world: Any,
+    world: WorldState,
     *,
     settlement_mode: str = "hull_then_circle",  # "hull_only" | "circle_only" | "hull_then_circle"
     include_settlement_mask: bool = True,

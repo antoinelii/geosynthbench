@@ -10,8 +10,8 @@ from shapely.geometry import Polygon
 from geosynthbench.render.textures.compose import render_full_rgb
 from geosynthbench.render.textures.masks import (
     MaskBuildResult,
-    _poly_to_px_rings,
     build_masks_from_world,
+    poly_to_px_rings,
 )
 from geosynthbench.render.textures.palettes import (
     building_palette,
@@ -55,7 +55,7 @@ def draw_poly_mask(
 ) -> None:
     if poly.is_empty:
         return
-    ext, holes = _poly_to_px_rings(world, poly)
+    ext, holes = poly_to_px_rings(world, poly)
     draw.polygon(ext, fill=value)
     for hole in holes:
         draw.polygon(hole, fill=0)
