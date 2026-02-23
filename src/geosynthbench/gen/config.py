@@ -30,7 +30,6 @@ def _pick_float(rng: np.random.Generator, v: float | FloatRange) -> float:
 @dataclass(frozen=True)
 class WorldGenConfig:
     seed: int = 42
-    rng0 = np.random.default_rng(seed)
 
     # terrain
     terrain_amplitude_m: float = 30.0

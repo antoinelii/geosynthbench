@@ -23,11 +23,12 @@ def generate_world(
     retry whole world if hard violations remain.
     """
     for attempt in range(max_retries):
-        random_seed = int(cfg.rng0.integers(0, 2**63 - 1, dtype=np.int64))
-        ss = np.random.SeedSequence([random_seed, attempt])
+        # seed = int(cfg.rng0.integers(0, 2**63 - 1, dtype=np.int64))
+        ss = np.random.SeedSequence([cfg.seed, attempt])
         rng_terrain, rng_water, rng_veg, rng_settlements, rng_roads, rng_buildings = [
             np.random.default_rng(s) for s in ss.spawn(6)
         ]
+
         # rng = np.random.default_rng(cfg.seed + attempt * 10_000)
 
         world = WorldState(tr=tr)
