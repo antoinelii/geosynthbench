@@ -42,7 +42,7 @@ def main() -> None:
             f.write(json.dumps(record, ensure_ascii=False) + "\n")
             n_ok += 1
             if (i + 1) % 10 == 0:
-                log.info(f"[A1] progress {i+1}/{args.n} (written={n_ok})")
+                log.info(f"[A1] progress {i + 1}/{args.n} (written={n_ok})")
 
     log.success(f"[A1] DONE. Wrote {n_ok} records to {jsonl_path}")
 

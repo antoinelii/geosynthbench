@@ -214,7 +214,7 @@ def main() -> None:
 
     # Header
     st.subheader(
-        f"Sample {rec.get('sample_id', 'UNK')} — {rec.get('task_code', 'UNK')} ({rec.get('modality','UNK')})"
+        f"Sample {rec.get('sample_id', 'UNK')} — {rec.get('task_code', 'UNK')} ({rec.get('modality', 'UNK')})"
     )
 
     inputs = rec.get("inputs", {}) or {}

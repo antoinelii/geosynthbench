@@ -20,7 +20,7 @@ def _ensure_utf8_stdout() -> None:
     encoding = getattr(sys.stdout, "encoding", None)
     if isinstance(encoding, str) and encoding.lower() != "utf-8":
         # reconfigure exists here by callable() check above
-        reconfigure(encoding="utf-8")  # type: ignore[misc]
+        reconfigure(encoding="utf-8")
 
 
 def setup_logging() -> None:

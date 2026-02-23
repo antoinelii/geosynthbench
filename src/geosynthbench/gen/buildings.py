@@ -15,11 +15,19 @@ def _rect(center: Point, size: float) -> Polygon:
     # axis-aligned square, later rotated
     half = size / 2.0
     x, y = center.x, center.y
-    return Polygon([(x - half, y - half), (x + half, y - half), (x + half, y + half), (x - half, y + half)])
+    return Polygon(
+        [(x - half, y - half), (x + half, y - half), (x + half, y + half), (x - half, y + half)]
+    )
 
 
-def _ok_building(world: WorldState, footprint: Polygon, settlement_center: Point, settlement_radius: float,
-                 min_dist_buildings: float, max_slope_building: float) -> bool:
+def _ok_building(
+    world: WorldState,
+    footprint: Polygon,
+    settlement_center: Point,
+    settlement_radius: float,
+    min_dist_buildings: float,
+    max_slope_building: float,
+) -> bool:
     if footprint.is_empty or not footprint.is_valid:
         return False
 
@@ -52,14 +60,20 @@ def _ok_building(world: WorldState, footprint: Polygon, settlement_center: Point
     return True
 
 
-def generate_buildings(world: WorldState, rng: np.random.Generator,
-                       buildings_per_settlement: tuple[int, int], size_range: tuple[float, float],
-                       min_dist_buildings_m: float, max_slope_building: float, max_attempts: int) -> None:
+def generate_buildings(
+    world: WorldState,
+    rng: np.random.Generator,
+    buildings_per_settlement: tuple[int, int],
+    size_range: tuple[float, float],
+    min_dist_buildings_m: float,
+    max_slope_building: float,
+    max_attempts: int,
+) -> None:
     world.buildings = []
     bid_counter = 0
 
     for s in world.settlements:
-        target = int(rng.integers(buildings_per_settlement[0], buildings_per_settlement[1] + 1)) # type: ignore
+        target = int(rng.integers(buildings_per_settlement[0], buildings_per_settlement[1] + 1))
         placed = 0
         attempts = 0
 
@@ -73,11 +87,18 @@ def generate_buildings(world: WorldState, rng: np.random.Generator,
             cy = float(s.center.y + r * math.sin(ang))
             size = float(rng.uniform(size_range[0], size_range[1]))
             fp = _rect(Point(cx, cy), size=size)
-            fp = rotate(fp, angle=float(rng.uniform(0.0, 180.0)), origin=(cx, cy), use_radians=False)
+            fp = rotate(
+                fp, angle=float(rng.uniform(0.0, 180.0)), origin=(cx, cy), use_radians=False
+            )
 
-            if not _ok_building(world, fp, settlement_center=s.center, settlement_radius=s.radius_m,
-                                min_dist_buildings=min_dist_buildings_m,
-                                max_slope_building=max_slope_building):
+            if not _ok_building(
+                world,
+                fp,
+                settlement_center=s.center,
+                settlement_radius=s.radius_m,
+                min_dist_buildings=min_dist_buildings_m,
+                max_slope_building=max_slope_building,
+            ):
                 continue
 
             world.buildings.append(

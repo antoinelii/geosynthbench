@@ -70,7 +70,7 @@ class DatasetWriter:
             # Preferred: if you have a mask builder implemented (recommended)
             try:
                 from geosynthbench.render.textures.masks import (
-                    build_masks_from_world,  # type: ignore
+                    build_masks_from_world,
                 )
 
                 res = build_masks_from_world(
@@ -246,7 +246,7 @@ class DatasetWriter:
 
         try:
             from geosynthbench.render.semantic import SemanticClass
-            from geosynthbench.render.textures.masks import (  # type: ignore
+            from geosynthbench.render.textures.masks import (
                 build_masks_from_world,
             )
 

@@ -50,14 +50,16 @@ def main() -> None:
                 )
                 writer.append_jsonl(record)
                 log.info(
-                    f"Done {i+1}/{n_samples} ({(i+1)/n_samples:.0%}) | elapsed={time.time()-t0:.1f}s"
+                    f"Done {i + 1}/{n_samples} ({(i + 1) / n_samples:.0%}) | elapsed={time.time() - t0:.1f}s"
                 )
                 break
             except ValueError:
                 # degenerate sample -> retry with same rng (it will advance internally)
                 continue
         if attempt == 49:
-            log.warning(f"Attempt {attempt+1}/50 failed for sample {i:05d}. Skipping this sample.")
+            log.warning(
+                f"Attempt {attempt + 1}/50 failed for sample {i:05d}. Skipping this sample."
+            )
 
     log.info(f"[DONE] dataset.jsonl -> {writer.jsonl_path}")
 

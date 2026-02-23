@@ -92,7 +92,7 @@ def _safe_union_water(world_t0) -> Polygon:
         return Polygon()
     u = unary_union(geoms)
     # if union is MultiPolygon, returning as-is is fine (it still has contains/intersects)
-    return u  # type: ignore[return-value]
+    return u
 
 
 class A1RoadPlusBuildingTask:
@@ -133,7 +133,7 @@ class A1RoadPlusBuildingTask:
 
         new_center = _sample_new_settlement_center(
             rng=rng,
-            extent=extent,  # type: ignore[arg-type]
+            extent=extent,
             forbidden=water_union,
             existing_centers=existing_centers,
             min_dist_m=520.0,
@@ -204,7 +204,7 @@ class A1RoadPlusBuildingTask:
             cy = float(new_center.y + r * np.sin(t))
             c = Point(cx, cy)
 
-            if not _within_extent(c, extent, margin=40.0):  # type: ignore[arg-type]
+            if not _within_extent(c, extent, margin=40.0):
                 continue
             if water_union and water_union.contains(c):
                 continue

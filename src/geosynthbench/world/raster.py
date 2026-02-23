@@ -13,18 +13,26 @@ class RasterTransform:
     Maps world coordinates (meters) to pixel coordinates.
     extent=(xmin,ymin,xmax,ymax), raster shape (H,W).
     """
+
     extent: tuple[float, float, float, float]
     width_px: int
     height_px: int
 
     @property
-    def xmin(self) -> float: return self.extent[0]
+    def xmin(self) -> float:
+        return self.extent[0]
+
     @property
-    def ymin(self) -> float: return self.extent[1]
+    def ymin(self) -> float:
+        return self.extent[1]
+
     @property
-    def xmax(self) -> float: return self.extent[2]
+    def xmax(self) -> float:
+        return self.extent[2]
+
     @property
-    def ymax(self) -> float: return self.extent[3]
+    def ymax(self) -> float:
+        return self.extent[3]
 
     @property
     def dx(self) -> float:
@@ -39,7 +47,7 @@ class RasterTransform:
         u = (x - self.xmin) / self.dx
         v = (self.ymax - y) / self.dy
         return u, v
-    
+
     # vectorized
     def world_to_px_vec(self, x: np.ndarray, y: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         u = (x - self.xmin) / self.dx
@@ -50,14 +58,21 @@ class RasterTransform:
         x = self.xmin + u * self.dx
         y = self.ymax - v * self.dy
         return x, y
-    
+
     def px_to_world_vec(self, u: np.ndarray, v: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         x = self.xmin + u * self.dx
         y = self.ymax - v * self.dy
         return x, y
 
     def extent_polygon(self) -> Polygon:
-        return Polygon([(self.xmin, self.ymin), (self.xmax, self.ymin), (self.xmax, self.ymax), (self.xmin, self.ymax)])
+        return Polygon(
+            [
+                (self.xmin, self.ymin),
+                (self.xmax, self.ymin),
+                (self.xmax, self.ymax),
+                (self.xmin, self.ymax),
+            ]
+        )
 
 
 @dataclass
@@ -103,7 +118,13 @@ class HeightField:
         Approximate stats under polygon by sampling a grid of points in its bbox.
         """
         if poly.is_empty:
-            return {"elev_mean": 0.0, "elev_max": 0.0, "slope_mean": 0.0, "slope_max": 0.0, "n": 0.0}
+            return {
+                "elev_mean": 0.0,
+                "elev_max": 0.0,
+                "slope_mean": 0.0,
+                "slope_max": 0.0,
+                "n": 0.0,
+            }
 
         minx, miny, maxx, maxy = poly.bounds
         # choose sampling resolution based on bbox size
