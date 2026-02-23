@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal
+from typing import Literal, TypeAlias
 
 import numpy as np
 
-IntRange = tuple[int, int]
-FloatRange = tuple[float, float]
+IntRange: TypeAlias = tuple[int, int]
+FloatRange: TypeAlias = tuple[float, float]
 
 
 def _pick_int(rng: np.random.Generator, v: int | IntRange) -> int:
