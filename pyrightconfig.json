@@ -1,12 +1,18 @@
 {
-  "include": ["src"],
-  "exclude": ["**/__pycache__", "outputs_*", "scripts/**"],
+  "include": ["src", "scripts"],
+  "exclude": [
+    "**/__pycache__",
+    "outputs_*",
+    "**/.*",
+    "**/node_modules/**",
+    "**/venv/**",
+    "**/.venv/**"
+  ],
   "pythonVersion": "3.12",
+
   "typeCheckingMode": "basic",
+  "strict": ["src"],
+
   "reportMissingTypeStubs": "none",
-  "reportPrivateImportUsage": "none",
-  "reportUnknownMemberType": "none",
-  "reportUnknownVariableType": "none",
-  "reportUnknownArgumentType": "none",
-  "reportUnknownLambdaType": "none"
+  "reportPrivateImportUsage": "none"
 }
