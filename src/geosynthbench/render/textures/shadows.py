@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import numpy as np
+import numpy.typing as npt
 
 
 def _shift_mask(mask: np.ndarray, dx: int, dy: int) -> np.ndarray:
@@ -36,7 +37,7 @@ def add_building_shadows(
     sun_azimuth_deg: float,
     strength: float,
     length_px: int,
-) -> np.ndarray:
+) -> npt.NDArray[np.float32]:
     """
     Darkens pixels 'behind' buildings w.r.t sun direction.
     sun_azimuth_deg: 0=north, 90=east
@@ -44,11 +45,11 @@ def add_building_shadows(
     if strength <= 0 or length_px <= 0 or not np.any(building_mask):
         return rgb
 
-    # Shadow goes opposite of light direction.
     az = np.deg2rad(float(sun_azimuth_deg))
     # image coords: +x right (east), +y down (south)
-    lx = np.sin(az)
-    ly = np.cos(az)
+    lx: float = np.sin(az)
+    ly: float = np.cos(az)
+    # Shadow goes opposite of light direction.
     sx = -lx
     sy = -ly
 
