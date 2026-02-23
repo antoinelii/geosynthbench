@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import numpy as np
-from shapely.geometry import Polygon
+from shapely.geometry import MultiPolygon, Polygon
 
 from geosynthbench.world.entities import WaterBody
 from geosynthbench.world.types import WaterId
@@ -9,7 +9,7 @@ from geosynthbench.world.world_state import WorldState
 
 
 def _blob(
-    rng: np.random.Generator, center: tuple[float, float], base_r: float, n_pts: int = 64
+    rng: np.random.Generator, center: tuple[float, float], base_r: float, n_pts: int = 16
 ) -> Polygon:
     cx, cy = center
     angles = np.linspace(0, 2 * np.pi, n_pts, endpoint=False)
@@ -40,11 +40,13 @@ def generate_water(world: WorldState, rng: np.random.Generator, n_water: int) ->
         if poly.is_empty or (hasattr(poly, "area") and poly.area < 1.0):
             continue
 
-        # convert to list of polys if we get a multi-poly result from difference
-        if poly.geom_type == "Polygon":
+        # convert to list of polys to handle multi-poly result from intersection
+        if isinstance(poly, Polygon):
             polys = [poly]
-        else:
+        elif isinstance(poly, MultiPolygon):
             polys = list(poly.geoms)
+        else:  # shouldn't happen with current code, but just in case
+            continue
 
         for p in polys:
             out.append(WaterBody(id=WaterId(f"w{i}"), polygon=p))

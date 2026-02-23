@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import numpy as np
-from shapely.geometry import Polygon
+from shapely.geometry import MultiPolygon, Polygon
 
 from geosynthbench.world.entities import VegetationPatch
 from geosynthbench.world.types import VegId
@@ -40,11 +40,13 @@ def generate_vegetation(world: WorldState, rng: np.random.Generator, n_veg: int)
         if poly.is_empty or poly.area < 10.0:
             continue
 
-        # convert to list of polys if we get a multi-poly result from difference
-        if poly.geom_type == "Polygon":
+        # convert to list of polys to handle multi-poly result from intersection
+        if isinstance(poly, Polygon):
             polys = [poly]
-        else:
+        elif isinstance(poly, MultiPolygon):
             polys = list(poly.geoms)
+        else:  # shouldn't happen with current code, but just in case
+            continue
 
         for p in polys:
             out.append(
