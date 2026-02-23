@@ -4,6 +4,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 
 import networkx as nx
+import numpy as np
+import numpy.typing as npt
 from shapely.geometry import LineString, Point, Polygon
 
 from geosynthbench.world.types import (
@@ -75,3 +77,10 @@ class Building:
     settlement_id: SettlementId
     footprint: Polygon
     near_road_id: RoadId | None = None
+
+
+@dataclass(frozen=True)
+class BuildingMaskItem:
+    id: BuildingId
+    settlement_id: SettlementId
+    mask: npt.NDArray[np.bool_]  # bool[H,W]

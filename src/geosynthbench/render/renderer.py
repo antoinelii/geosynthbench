@@ -9,7 +9,7 @@ from shapely.geometry import Polygon
 
 from geosynthbench.render.textures.compose import render_full_rgb
 from geosynthbench.render.textures.masks import (
-    MaskBuildResult,
+    MaskLayers,
     build_masks_from_world,
     poly_to_px_rings,
 )
@@ -175,7 +175,7 @@ def render_world_textured(world: WorldState, rng: np.random.Generator) -> Image.
 
 def render_world_textured_with_mask(
     world: WorldState, rng: np.random.Generator
-) -> tuple[Image.Image, MaskBuildResult]:
+) -> tuple[Image.Image, MaskLayers]:
     W, H = world.tr.width_px, world.tr.height_px
 
     elev = (
@@ -276,7 +276,7 @@ def render_world_textured_with_mask(
     )
 
 
-def mask_layers_to_mask_image(mask_build_res: MaskBuildResult) -> Image.Image:
+def mask_layers_to_mask_image(mask_build_res: MaskLayers) -> Image.Image:
     # convert the dict of bool masks to a single PIL image with different values for each class
     # (for visualization / debug purposes, not used in rendering)
     masks = mask_build_res.masks
