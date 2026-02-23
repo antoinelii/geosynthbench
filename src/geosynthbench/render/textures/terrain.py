@@ -2,12 +2,15 @@
 from __future__ import annotations
 
 import numpy as np
+import numpy.typing as npt
 
 from .noise import fbm_2d
 from .params import SceneParams
 
 
-def hillshade(elev: np.ndarray, azimuth_deg: float, altitude_deg: float) -> np.ndarray:
+def hillshade(
+    elev: npt.NDArray[np.float32], azimuth_deg: float, altitude_deg: float
+) -> npt.NDArray[np.float32]:
     """
     Classic hillshade from elevation using gradient-based normals.
     elev: float32 [H,W]
@@ -38,7 +41,7 @@ def hillshade(elev: np.ndarray, azimuth_deg: float, altitude_deg: float) -> np.n
     return luminance.astype(np.float32)
 
 
-def _biome_base_rgb(scene: SceneParams) -> tuple[np.ndarray, np.ndarray]:
+def _biome_base_rgb(scene: SceneParams) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.float32]]:
     """
     Returns (lowland_rgb, highland_rgb) in 0..1, shape (3,)
     """
@@ -54,10 +57,10 @@ def _biome_base_rgb(scene: SceneParams) -> tuple[np.ndarray, np.ndarray]:
 
 
 def background_palette_from_elevation(
-    elev: np.ndarray,
+    elev: npt.NDArray[np.float32],
     scene: SceneParams,
     rng: np.random.Generator,
-) -> np.ndarray:
+) -> npt.NDArray[np.float32]:
     """
     Creates base terrain RGB in float32 [0,1] using elevation percentile + fbm albedo + hillshade.
     """

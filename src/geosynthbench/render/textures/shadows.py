@@ -5,7 +5,7 @@ import numpy as np
 import numpy.typing as npt
 
 
-def _shift_mask(mask: np.ndarray, dx: int, dy: int) -> np.ndarray:
+def _shift_mask(mask: npt.NDArray[np.bool_], dx: int, dy: int) -> npt.NDArray[np.bool_]:
     """
     Shift boolean mask by (dx,dy) in pixels. Outside = False.
     dx>0 shifts right. dy>0 shifts down.
@@ -31,8 +31,8 @@ def _shift_mask(mask: np.ndarray, dx: int, dy: int) -> np.ndarray:
 
 
 def add_building_shadows(
-    rgb: np.ndarray,
-    building_mask: np.ndarray,
+    rgb: npt.NDArray[np.float32],
+    building_mask: npt.NDArray[np.bool_],
     *,
     sun_azimuth_deg: float,
     strength: float,

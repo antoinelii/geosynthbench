@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import numpy as np
+import numpy.typing as npt
 
 from .mask_ops import shoreline_band, thin_mask_by_density
 from .noise import fbm_2d
@@ -15,16 +16,16 @@ from .params import (
 )
 
 
-def _rgba_layer(h: int, w: int) -> np.ndarray:
+def _rgba_layer(h: int, w: int) -> npt.NDArray[np.float32]:
     return np.zeros((h, w, 4), dtype=np.float32)
 
 
 def water_palette(
-    water_mask: np.ndarray,
+    water_mask: npt.NDArray[np.bool_],
     scene: SceneParams,
     params: WaterParams,
     rng: np.random.Generator,
-) -> np.ndarray:
+) -> npt.NDArray[np.float32]:
     h, w = water_mask.shape
     out = _rgba_layer(h, w)
     if not np.any(water_mask):
@@ -68,11 +69,11 @@ def water_palette(
 
 
 def vegetation_palette(
-    veg_mask: np.ndarray,
+    veg_mask: npt.NDArray[np.bool_],
     scene: SceneParams,
     params: VegetationParams,
     rng: np.random.Generator,
-) -> np.ndarray:
+) -> npt.NDArray[np.float32]:
     h, w = veg_mask.shape
     out = _rgba_layer(h, w)
     # Patchy density mask: thins out the input mask in a spatially coherent way, for more visual interest.
@@ -111,11 +112,11 @@ def vegetation_palette(
 
 
 def roads_palette(
-    roads_mask: np.ndarray,
+    roads_mask: npt.NDArray[np.bool_],
     scene: SceneParams,
     params: RoadParams,
     rng: np.random.Generator,
-) -> np.ndarray:
+) -> npt.NDArray[np.float32]:
     h, w = roads_mask.shape
     out = _rgba_layer(h, w)
     if not np.any(roads_mask):
@@ -136,11 +137,11 @@ def roads_palette(
 
 
 def settlement_palette(
-    settlement_mask: np.ndarray,
+    settlement_mask: npt.NDArray[np.bool_],
     scene: SceneParams,
     params: SettlementParams,
     rng: np.random.Generator,
-) -> np.ndarray:
+) -> npt.NDArray[np.float32]:
     h, w = settlement_mask.shape
     out = _rgba_layer(h, w)
     if not np.any(settlement_mask):
@@ -167,12 +168,12 @@ def settlement_palette(
 
 
 def building_palette(
-    building_mask: np.ndarray,
+    building_mask: npt.NDArray[np.bool_],
     settlement_id: str,
     scene: SceneParams,
     params: BuildingParams,
     rng: np.random.Generator,
-) -> np.ndarray:
+) -> npt.NDArray[np.float32]:
     h, w = building_mask.shape
     out = _rgba_layer(h, w)
     if not np.any(building_mask):

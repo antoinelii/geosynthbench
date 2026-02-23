@@ -2,14 +2,15 @@
 from __future__ import annotations
 
 import numpy as np
+import numpy.typing as npt
 
 
-def _dilate_bool(mask: np.ndarray, radius_px: int) -> np.ndarray:
+def _dilate_bool(mask: npt.NDArray[np.bool_], radius_px: int) -> npt.NDArray[np.bool_]:
     """
     Cheap binary dilation using repeated 3x3 max filter.
     radius_px ~ number of iterations.
     """
-    m = mask.astype(bool, copy=False)
+    m = mask
     r = int(radius_px)
     if r <= 0 or not np.any(m):
         return m.copy()
@@ -31,41 +32,39 @@ def _dilate_bool(mask: np.ndarray, radius_px: int) -> np.ndarray:
     return out
 
 
-def shoreline_band(water_mask: np.ndarray, width_px: int) -> np.ndarray:
+def shoreline_band(water_mask: npt.NDArray[np.bool_], width_px: int) -> npt.NDArray[np.bool_]:
     """
     Returns a ring mask around water: dilate(water,width) - water.
     """
-    w = water_mask.astype(bool, copy=False)
-    if width_px <= 0 or not np.any(w):
-        return np.zeros_like(w, dtype=bool)
-    dil = _dilate_bool(w, int(width_px))
-    return dil & ~w
+    if width_px <= 0 or not np.any(water_mask):
+        return np.zeros_like(water_mask, dtype=bool)
+    dil = _dilate_bool(water_mask, int(width_px))
+    return dil & ~water_mask
 
 
 def thin_mask_by_density(
-    mask: np.ndarray,
+    mask: npt.NDArray[np.bool_],
     density: float,
     rng: np.random.Generator,
     *,
     clumpy: bool = True,
     clump_scale_px: float = 32.0,
-) -> np.ndarray:
+) -> npt.NDArray[np.bool_]:
     """
     Randomly keeps ~density fraction of True pixels inside mask.
     If clumpy=True, produces patchy thinning rather than i.i.d speckle.
     """
-    m = mask.astype(bool, copy=False)
     d = float(np.clip(density, 0.0, 1.0))
-    if d <= 0.0 or not np.any(m):
-        return np.zeros_like(m, dtype=bool)
+    if d <= 0.0 or not np.any(mask):
+        return np.zeros_like(mask, dtype=bool)
     if d >= 1.0:
-        return m.copy()
+        return mask.copy()
 
-    h, w = m.shape
+    h, w = mask.shape
 
     if not clumpy:
         keep = rng.random((h, w), dtype=np.float32) < d
-        return m & keep
+        return mask & keep
 
     # clumpy: create a smooth-ish random field then threshold it
     # (no extra deps; build coarse grid & bilinear upsample)
@@ -91,10 +90,10 @@ def thin_mask_by_density(
     field = a + (b - a) * yf  # ~smooth 0..1
 
     # choose threshold so that fraction ~ density inside mask
-    vals = field[m]
+    vals = field[mask]
     # guard
     if vals.size == 0:
-        return np.zeros_like(m, dtype=bool)
+        return np.zeros_like(mask, dtype=bool)
     thr = np.quantile(vals, 1.0 - d)
     keep = field >= thr
-    return m & keep
+    return mask & keep

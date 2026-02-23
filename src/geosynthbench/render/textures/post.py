@@ -2,9 +2,10 @@
 from __future__ import annotations
 
 import numpy as np
+import numpy.typing as npt
 
 
-def _box_blur_2d(x: np.ndarray, k: int) -> np.ndarray:
+def _box_blur_2d(x: npt.NDArray[np.float32], k: int) -> npt.NDArray[np.float32]:
     """
     Fast-ish separable box blur for float32 images.
     k must be odd.
@@ -28,14 +29,14 @@ def _box_blur_2d(x: np.ndarray, k: int) -> np.ndarray:
 
 
 def postprocess(
-    rgb: np.ndarray,
+    rgb: npt.NDArray[np.float32],
     exposure: float,
     gamma: float,
     saturation: float,
     grain: float,
     blur_k: int,
     rng: np.random.Generator,
-) -> np.ndarray:
+) -> npt.NDArray[np.uint8]:
     """
     rgb float32 [0,1] -> uint8
     """
