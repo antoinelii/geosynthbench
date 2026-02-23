@@ -22,11 +22,11 @@ class WorldState:
     tr: RasterTransform
     terrain: HeightField | None = None
 
-    water: list[WaterBody] = field(default_factory=list)  # type: ignore
-    vegetation: list[VegetationPatch] = field(default_factory=list)  # type: ignore
-    settlements: list[Settlement] = field(default_factory=list)  # type: ignore
-    roads: RoadNetwork = field(default_factory=RoadNetwork)
-    buildings: list[Building] = field(default_factory=list)  # type: ignore
+    water: list[WaterBody] = field(default_factory=lambda: [])
+    vegetation: list[VegetationPatch] = field(default_factory=lambda: [])
+    settlements: list[Settlement] = field(default_factory=lambda: [])
+    roads: RoadNetwork = field(default_factory=lambda: RoadNetwork())
+    buildings: list[Building] = field(default_factory=lambda: [])
 
     _extent_poly: Polygon | None = None
 
@@ -38,12 +38,12 @@ class WorldState:
     def water_union(self) -> BaseGeometry:
         if not self.water:
             return Polygon()
-        return unary_union([w.polygon for w in self.water])  # type: ignore
+        return unary_union([w.polygon for w in self.water])
 
     def vegetation_union(self) -> BaseGeometry:
         if not self.vegetation:
             return Polygon()
-        return unary_union([v.polygon for v in self.vegetation])  # type: ignore
+        return unary_union([v.polygon for v in self.vegetation])
 
     def buildings_by_settlement(self) -> dict[SettlementId, list[Building]]:
         out: dict[SettlementId, list[Building]] = {}
