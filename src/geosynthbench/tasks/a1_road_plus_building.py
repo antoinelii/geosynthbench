@@ -28,7 +28,7 @@ class A1Config(TaskConfig):
     road_width_m: float = 8.0
 
     # building cluster around the NEW road / NEW settlement
-    n_new_buildings: tuple[int, int] = (4, 9)  # keep small to be countable
+    n_new_buildings: tuple[int, int] = (6, 12)  # keep small to be countable
     cluster_radius_m: float = 220.0
     road_buffer_m: float = 55.0  # buildings counted if within this of new road
     building_size_m: tuple[float, float] = (12.0, 22.0)

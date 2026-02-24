@@ -482,6 +482,9 @@ def build_a1_record(
                     sample_idx=sample_idx, world_t0=world_t0, rng=render_rng
                 )
                 if hasattr(writer, "render_and_save_t1"):
+                    # reset render_rng to ensure t1 rendering is done in the
+                    # same way than t0, important to control differences
+                    render_rng = np.random.default_rng(render_seed)
                     r1 = writer.render_and_save_t1(
                         sample_idx=sample_idx, world_t1=world_t1, rng=render_rng
                     )
