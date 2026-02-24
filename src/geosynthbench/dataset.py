@@ -7,7 +7,7 @@ from typing import Optional
 
 import numpy as np
 
-from geosynthbench.io.deserialize import world_from_dict
+from geosynthbench.io.deserialize import world_from_jsonl
 from geosynthbench.io.jsonl_utils import JsonlWritePaths, append_world_t0_jsonl, read_jsonl_record
 from geosynthbench.world.world_state import WorldState
 
@@ -58,7 +58,7 @@ class WorldItem:
     def load_world_state(self) -> WorldState:
         idx = int(self.sample_id)
         record = read_jsonl_record(self.jsonl_path, idx)
-        world_state = world_from_dict(record["t0"], base_dir=self.jsonl_path.parent)
+        world_state = world_from_jsonl(record["t0"], base_dir=self.jsonl_path.parent)
         return world_state
 
     def load_terrain(self) -> np.ndarray[tuple[int, int], np.float32]:
