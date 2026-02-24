@@ -7,24 +7,11 @@ from pathlib import Path
 from typing import Any
 
 from geosynthbench.gen.exceptions import WorldGenerationFailed
+from geosynthbench.pipeline.random import derive_seeds
 from geosynthbench.pipeline.run import build_one_record
+from geosynthbench.tasks import TASK_IDS
+from geosynthbench.tasks.exceptions import TaskGenerationFailed
 from geosynthbench.utils.logging import get_logger, setup_logging
-
-TASK_IDS_DEFAULT = ("e1", "d1", "s1", "n1", "a1")
-
-
-def _stable_seed(base_seed: int, task_id: str, k: int) -> int:
-    """
-    Deterministic seed derivation so anyone reproduces the same demo.
-    Avoid python's built-in hash() (salted per process).
-    """
-    acc = base_seed & 0xFFFFFFFF
-    for ch in task_id.encode("utf-8"):
-        acc = (acc * 16777619) ^ ch
-        acc &= 0xFFFFFFFF
-    acc = (acc * 16777619) ^ (k & 0xFFFFFFFF)
-    acc &= 0xFFFFFFFF
-    return int(acc)
 
 
 @dataclass(frozen=True)
@@ -59,7 +46,7 @@ def main() -> None:
     ap.add_argument(
         "--tasks",
         type=str,
-        default=",".join(TASK_IDS_DEFAULT),
+        default=",".join(TASK_IDS),
         help="Comma-separated list of task ids (default: e1,d1,s1,n1,a1)",
     )
     # add an argument for number of samples per task if list make it match listof task ids
@@ -95,6 +82,9 @@ def main() -> None:
         task_ids=task_ids,
         overwrite=bool(args.overwrite),
     )
+    # Set up a base RNG to derive all other seeds to ensure reproducibility and avoid correlations
+    # between samples (e.g. if using sample_id as seed directly, it may correlate with task_id and
+    # lead to similar samples for same k across tasks)
 
     cfg.out_root.mkdir(parents=True, exist_ok=True)
     for i, task_id in enumerate(cfg.task_ids):
@@ -113,17 +103,22 @@ def main() -> None:
             start_k = len(records)
 
         for k in range(start_k, start_k + cfg.per_task[i]):
-            seed = _stable_seed(cfg.base_seed, task_id, k)
+            world_seed, render_seed, task_seed = derive_seeds(cfg.base_seed, task_id, k)
+
             sample_id = f"{task_id.lower()}_{k:05d}"
             try:
                 rec = build_one_record(
                     task_code=task_id,
                     sample_id=sample_id,
                     out_dir=task_dir,  # IMPORTANT: per-task directory (viewer expects relative paths to exist)
-                    seed=seed,
+                    world_seed=world_seed,
+                    render_seed=render_seed,
+                    task_seed=task_seed,
                 )
                 # Add minimal provenance
-                rec.setdefault("seed", seed)
+                rec.setdefault("world_seed", world_seed)
+                rec.setdefault("render_seed", render_seed)
+                rec.setdefault("task_seed", task_seed)
                 rec.setdefault("task_code", task_id.lower())
                 rec.setdefault("sample_id", sample_id)
 
@@ -133,6 +128,10 @@ def main() -> None:
                 total += 1
 
             except WorldGenerationFailed as e:
+                log.warning(f"[SKIP] sample {sample_id} failed to build_one_record: {e}")
+                continue
+
+            except TaskGenerationFailed as e:
                 log.warning(f"[SKIP] sample {sample_id} failed to build_one_record: {e}")
                 continue
 
