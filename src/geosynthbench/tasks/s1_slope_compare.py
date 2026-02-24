@@ -47,12 +47,18 @@ class S1SlopeCompareTask:
         if len(settlements) < 2:
             raise ValueError("Need ≥2 settlements")
 
-        a, b = settlements[0], settlements[1]
+        a_idx, b_idx = rng.choice(len(settlements), size=2, replace=False)
+        a, b = settlements[int(a_idx)], settlements[int(b_idx)]
 
         if world_t0.terrain is None:
             raise ValueError("World terrain is not defined")
+
         sa = world_t0.terrain.sample_slope_point(a.center.x, a.center.y)
         sb = world_t0.terrain.sample_slope_point(b.center.x, b.center.y)
+        # poly_a = world_t0.get_settlement_polygon(a.id)
+        # poly_b = world_t0.get_settlement_polygon(b.id)
+        # sa = world_t0.terrain.poly_stats(poly_a)["slope_mean"]
+        # sb = world_t0.terrain.poly_stats(poly_b)["slope_mean"]
 
         if abs(sa - sb) < task_cfg.min_delta:
             raise ValueError("Degenerate slope sample")
