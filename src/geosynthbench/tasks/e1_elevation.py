@@ -32,7 +32,7 @@ class E1ElevationCompareTask:
     name = "Elevation comparison of two settlements"
     is_temporal = False
 
-    def generate_t0(self, cfg: E1Config, rng: np.random.Generator):
+    def generate_t0(self, task_cfg: E1Config):
         # Your existing generator wrapper
 
         from geosynthbench.tasks.utils import generate_t0_sample
@@ -40,7 +40,7 @@ class E1ElevationCompareTask:
         # IMPORTANT: make generation reproducible per sample:
         # If your generate_t0_sample uses cfg.seed internally, set it here.
         # Otherwise pass rng down (if supported). Minimal approach: clone config with seed.
-        world_cfg = cfg.world_cfg
+        world_cfg = task_cfg.world_cfg
         # if it's a dataclass/frozen, just mutate if allowed
         # if hasattr(world_cfg, "seed"):
         #    setattr(world_cfg, "seed", int(rng.integers(0, 2**31 - 1)))
@@ -51,7 +51,7 @@ class E1ElevationCompareTask:
         self,
         *,
         sample_idx: int,
-        cfg: E1Config,
+        task_cfg: E1Config,
         world_t0: WorldState,
         render: RenderArtifacts,
         rng: np.random.Generator,
@@ -60,7 +60,7 @@ class E1ElevationCompareTask:
         if len(settlements) < 2:
             raise ValueError("E1 requires at least 2 settlements.")
 
-        if cfg.settlement_strategy == "random_two":
+        if task_cfg.settlement_strategy == "random_two":
             idx_a, idx_b = rng.choice(len(settlements), size=2, replace=False)
             a, b = settlements[int(idx_a)], settlements[int(idx_b)]
         else:
@@ -73,7 +73,7 @@ class E1ElevationCompareTask:
         eb = _altitude_m(pb, world_t0)
 
         # validate non-degenerate
-        if abs(ea - eb) < cfg.min_delta_m:
+        if abs(ea - eb) < task_cfg.min_delta_m:
             raise ValueError("Degenerate sample: elevations too close.")
 
         answer = "A" if ea > eb else "B"

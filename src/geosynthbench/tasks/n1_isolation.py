@@ -78,10 +78,10 @@ class N1IsolationTask:
     name = "Most isolated settlement in road network"
     is_temporal = False
 
-    def generate_t0(self, cfg: N1Config, rng: np.random.Generator):
+    def generate_t0(self, task_cfg: N1Config, rng: np.random.Generator):
         from geosynthbench.tasks.utils import generate_t0_sample
 
-        world_cfg = cfg.world_cfg
+        world_cfg = task_cfg.world_cfg
 
         return generate_t0_sample(world_cfg)
 
@@ -89,7 +89,7 @@ class N1IsolationTask:
         self,
         *,
         sample_idx: int,
-        cfg: N1Config,
+        task_cfg: N1Config,
         world_t0: WorldState,
         render: RenderArtifacts,
         rng: np.random.Generator,
@@ -110,7 +110,7 @@ class N1IsolationTask:
         scores_by_id = compute_isolation_scores(world_t0)
 
         # Choose best id and convert to label
-        best_id = pick_most_isolated(scores_by_id, tie_break=cfg.strategy)
+        best_id = pick_most_isolated(scores_by_id, tie_break=task_cfg.strategy)
         best_label = next(lab for lab, sid in label_to_id.items() if sid == best_id)
 
         # Also compute per-label scores (nice for oracle/debug)

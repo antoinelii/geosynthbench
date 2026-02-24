@@ -5,6 +5,7 @@ from typing import Any
 
 import numpy as np
 
+from geosynthbench.gen.config import WorldGenConfig
 from geosynthbench.pipeline.types import RenderArtifacts
 from geosynthbench.tasks.base import TaskConfig
 from geosynthbench.tasks.utils import px_loc
@@ -14,7 +15,7 @@ from geosynthbench.world.world_state import WorldState
 
 @dataclass(frozen=True)
 class D1Config(TaskConfig):
-    world_cfg: Any
+    world_cfg: WorldGenConfig
     min_delta_m: float = 10.0
     strategy: str = "first_two"
 
@@ -24,12 +25,12 @@ class D1DistanceToWaterTask:
     name = "Distance to water comparison"
     is_temporal = False
 
-    def generate_t0(self, cfg: D1Config):
+    def generate_t0(self, task_cfg: D1Config):
         from geosynthbench.tasks.utils import generate_t0_sample
 
         # If your generate_t0_sample uses cfg.seed internally, set it here.
         # Otherwise pass rng down (if supported). Minimal approach: clone config with seed.
-        world_cfg = cfg.world_cfg
+        world_cfg = task_cfg.world_cfg
         # if it's a dataclass/frozen, just mutate if allowed
         # if hasattr(world_cfg, "seed"):
         #    setattr(world_cfg, "seed", int(rng.integers(0, 2**31 - 1)))
@@ -45,7 +46,7 @@ class D1DistanceToWaterTask:
         self,
         *,
         sample_idx: int,
-        cfg: D1Config,
+        task_cfg: D1Config,
         world_t0: WorldState,
         render: RenderArtifacts,
         rng: np.random.Generator,
@@ -54,7 +55,7 @@ class D1DistanceToWaterTask:
         if len(settlements) < 2:
             raise ValueError("Need ≥2 settlements")
 
-        if cfg.strategy == "random_two":
+        if task_cfg.strategy == "random_two":
             idx_a, idx_b = rng.choice(len(settlements), size=2, replace=False)
             a, b = settlements[int(idx_a)], settlements[int(idx_b)]
         else:
@@ -63,7 +64,7 @@ class D1DistanceToWaterTask:
         da = self._dist_to_water(a, world_t0)
         db = self._dist_to_water(b, world_t0)
 
-        if abs(da - db) < cfg.min_delta_m:
+        if abs(da - db) < task_cfg.min_delta_m:
             raise ValueError("Degenerate distance sample")
 
         answer = "A" if da < db else "B"

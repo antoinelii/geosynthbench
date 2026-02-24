@@ -23,12 +23,12 @@ class S1SlopeCompareTask:
     name = "Slope comparison between settlements"
     is_temporal = False
 
-    def generate_t0(self, cfg: S1Config, rng: np.random.Generator):
+    def generate_t0(self, task_cfg: S1Config, rng: np.random.Generator):
         from geosynthbench.tasks.utils import generate_t0_sample
 
         # If your generate_t0_sample uses cfg.seed internally, set it here.
         # Otherwise pass rng down (if supported). Minimal approach: clone config with seed.
-        world_cfg = cfg.world_cfg
+        world_cfg = task_cfg.world_cfg
         # if it's a dataclass/frozen, just mutate if allowed
         # if hasattr(world_cfg, "seed"):
         #    setattr(world_cfg, "seed", int(rng.integers(0, 2**31 - 1)))
@@ -38,7 +38,7 @@ class S1SlopeCompareTask:
         self,
         *,
         sample_idx: int,
-        cfg: S1Config,
+        task_cfg: S1Config,
         world_t0: WorldState,
         render: RenderArtifacts,
         rng: np.random.Generator,
@@ -54,7 +54,7 @@ class S1SlopeCompareTask:
         sa = world_t0.terrain.sample_slope_point(a.center.x, a.center.y)
         sb = world_t0.terrain.sample_slope_point(b.center.x, b.center.y)
 
-        if abs(sa - sb) < cfg.min_delta:
+        if abs(sa - sb) < task_cfg.min_delta:
             raise ValueError("Degenerate slope sample")
 
         answer = "A" if sa > sb else "B"

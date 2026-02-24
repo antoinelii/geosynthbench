@@ -9,6 +9,7 @@ from shapely.geometry import LineString, Point, Polygon
 from shapely.geometry.base import BaseGeometry
 from shapely.ops import unary_union
 
+from geosynthbench.gen.config import WorldGenConfig
 from geosynthbench.pipeline.writer import RenderArtifacts
 from geosynthbench.tasks.base import TaskConfig
 from geosynthbench.tasks.utils import generate_t0_sample, px_loc
@@ -20,7 +21,7 @@ from geosynthbench.world.world_state import WorldState
 @dataclass(frozen=True)
 class A1Config(TaskConfig):
     # uses your WorldGenConfig instance directly
-    world_cfg: Any
+    world_cfg: WorldGenConfig
 
     # --- operator knobs (kept intentionally simple/robust) ---
     connect_strategy: str = "nearest"  # "nearest" (only one supported for MVP)
@@ -113,20 +114,20 @@ class A1RoadPlusBuildingTask:
     name = "Road + settlement addition, count new buildings in new cluster"
     is_temporal = True
 
-    def generate_t0(self, cfg: A1Config, rng: np.random.Generator):
+    def generate_t0(self, cfg: A1Config):
         # Keep identical style to other tasks (E1/N1)
         return generate_t0_sample(cfg.world_cfg)
 
     def _apply_operator_t0_to_t1(
         self,
         *,
-        cfg: A1Config,
+        task_cfg: A1Config,
         world_t0: WorldState,
         rng: np.random.Generator,
     ):
         import copy
 
-        if len(list(world_t0.settlements)) < cfg.min_existing_settlements:
+        if len(list(world_t0.settlements)) < task_cfg.min_existing_settlements:
             raise ValueError("A1 requires at least 2 existing settlements.")
 
         world_t1 = copy.deepcopy(world_t0)
@@ -156,7 +157,7 @@ class A1RoadPlusBuildingTask:
         world_t1.settlements.append(new_settlement)
 
         # --- connect with 1 road to nearest existing settlement ---
-        if cfg.connect_strategy != "nearest":
+        if task_cfg.connect_strategy != "nearest":
             raise ValueError("Only connect_strategy='nearest' supported in MVP.")
 
         nearest = min(world_t0.settlements, key=lambda s: new_center.distance(s.center))
@@ -173,7 +174,7 @@ class A1RoadPlusBuildingTask:
             a_id=a_id,
             b_id=b_id,
             centerline=centerline,
-            width_m=float(cfg.road_width_m),
+            width_m=float(task_cfg.road_width_m),
         )
         world_t1.roads.segments.append(new_seg)
 
@@ -181,7 +182,7 @@ class A1RoadPlusBuildingTask:
         world_t1.roads.rebuild_graph()
 
         # --- generate NEW buildings near new road / new settlement ---
-        n_new = int(rng.integers(cfg.n_new_buildings[0], cfg.n_new_buildings[1] + 1))
+        n_new = int(rng.integers(task_cfg.n_new_buildings[0], task_cfg.n_new_buildings[1] + 1))
         angle = _road_angle_deg(nearest.center, new_center)
 
         existing_buildings = list(world_t1.buildings)
@@ -192,12 +193,12 @@ class A1RoadPlusBuildingTask:
         new_building_ids: list[str] = []
 
         # sample in a disk around the new settlement, but require proximity to the new road
-        for _ in range(cfg.max_attempts_place_buildings):
+        for _ in range(task_cfg.max_attempts_place_buildings):
             if len(new_building_ids) >= n_new:
                 break
 
             # polar sample around new settlement
-            r = float(rng.uniform(20.0, cfg.cluster_radius_m))
+            r = float(rng.uniform(20.0, task_cfg.cluster_radius_m))
             t = float(rng.uniform(0.0, 2 * np.pi))
             cx = float(new_center.x + r * np.cos(t))
             cy = float(new_center.y + r * np.sin(t))
@@ -207,11 +208,11 @@ class A1RoadPlusBuildingTask:
                 continue
             if water_union and water_union.contains(c):
                 continue
-            if c.distance(centerline) > cfg.road_buffer_m:
+            if c.distance(centerline) > task_cfg.road_buffer_m:
                 continue
 
-            w = float(rng.uniform(cfg.building_size_m[0], cfg.building_size_m[1]))
-            h = float(rng.uniform(cfg.building_size_m[0], cfg.building_size_m[1]))
+            w = float(rng.uniform(task_cfg.building_size_m[0], task_cfg.building_size_m[1]))
+            h = float(rng.uniform(task_cfg.building_size_m[0], task_cfg.building_size_m[1]))
             fp = _make_rect_footprint(c, w=w, h=h, angle_deg=angle)
 
             if water_union and water_union.intersects(fp):
@@ -223,7 +224,8 @@ class A1RoadPlusBuildingTask:
 
             # also avoid placing too close to other NEW buildings
             if any(
-                fp.distance(b.footprint) < cfg.min_dist_new_buildings_m for b in world_t1.buildings
+                fp.distance(b.footprint) < task_cfg.min_dist_new_buildings_m
+                for b in world_t1.buildings
             ):
                 continue
 
@@ -248,14 +250,14 @@ class A1RoadPlusBuildingTask:
         self,
         *,
         sample_idx: int,
-        cfg: A1Config,
+        task_cfg: A1Config,
         world_t0: WorldState,
         render: RenderArtifacts,
         rng: np.random.Generator,
     ) -> dict[str, Any]:
         # Operator: build t1 + remember what is NEW
         world_t1, new_sid, new_rid, new_bids = self._apply_operator_t0_to_t1(
-            cfg=cfg, world_t0=world_t0, rng=rng
+            task_cfg=task_cfg, world_t0=world_t0, rng=rng
         )
 
         # Render pair (run_task/scripts may have already rendered; keep record construction pure)
