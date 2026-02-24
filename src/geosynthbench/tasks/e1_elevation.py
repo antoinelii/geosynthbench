@@ -9,6 +9,8 @@ from shapely.geometry import Point
 from geosynthbench.gen.config import WorldGenConfig
 from geosynthbench.pipeline.writer import RenderArtifacts
 from geosynthbench.tasks.base import TaskConfig
+from geosynthbench.tasks.utils import px_loc
+from geosynthbench.world.world_state import WorldState
 
 
 @dataclass(frozen=True)
@@ -19,13 +21,10 @@ class E1Config(TaskConfig):
     settlement_strategy: str = "first_two"  # "random_two"
 
 
-def _altitude_m(point: Point, world) -> float:
-    return float(world.terrain.sample_point(point.x, point.y))
-
-
-def _px_loc(point: Point, world) -> tuple[int, int]:
-    u, v = world.tr.world_to_px(point.x, point.y)
-    return int(u), int(v)
+def _altitude_m(point: Point, world: WorldState) -> float:
+    if world.terrain is None:
+        raise ValueError("World terrain is not defined")
+    return world.terrain.sample_point(point.x, point.y)
 
 
 class E1ElevationCompareTask:
@@ -53,7 +52,7 @@ class E1ElevationCompareTask:
         *,
         sample_idx: int,
         cfg: E1Config,
-        world_t0,
+        world_t0: WorldState,
         render: RenderArtifacts,
         rng: np.random.Generator,
     ) -> dict[str, Any]:
@@ -62,7 +61,8 @@ class E1ElevationCompareTask:
             raise ValueError("E1 requires at least 2 settlements.")
 
         if cfg.settlement_strategy == "random_two":
-            a, b = rng.choice(settlements, size=2, replace=False)
+            idx_a, idx_b = rng.choice(len(settlements), size=2, replace=False)
+            a, b = settlements[int(idx_a)], settlements[int(idx_b)]
         else:
             a, b = settlements[0], settlements[1]
 
@@ -78,8 +78,8 @@ class E1ElevationCompareTask:
 
         answer = "A" if ea > eb else "B"
 
-        a_px = _px_loc(pa, world_t0)
-        b_px = _px_loc(pb, world_t0)
+        a_px = px_loc(pa, world_t0)
+        b_px = px_loc(pb, world_t0)
 
         prompt = (
             f"[{self.code}] Two settlements are given by pixel coordinates:\n"

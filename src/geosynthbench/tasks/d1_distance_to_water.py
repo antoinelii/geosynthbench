@@ -8,6 +8,8 @@ import numpy as np
 from geosynthbench.pipeline.types import RenderArtifacts
 from geosynthbench.tasks.base import TaskConfig
 from geosynthbench.tasks.utils import px_loc
+from geosynthbench.world.entities import Settlement
+from geosynthbench.world.world_state import WorldState
 
 
 @dataclass(frozen=True)
@@ -34,7 +36,7 @@ class D1DistanceToWaterTask:
 
         return generate_t0_sample(world_cfg)
 
-    def _dist_to_water(self, settlement, world) -> float:
+    def _dist_to_water(self, settlement: Settlement, world: WorldState) -> float:
         if not world.water:
             return float("inf")
         return min(settlement.center.distance(w.polygon) for w in world.water)
@@ -44,7 +46,7 @@ class D1DistanceToWaterTask:
         *,
         sample_idx: int,
         cfg: D1Config,
-        world_t0,
+        world_t0: WorldState,
         render: RenderArtifacts,
         rng: np.random.Generator,
     ) -> dict[str, Any]:
@@ -53,7 +55,8 @@ class D1DistanceToWaterTask:
             raise ValueError("Need ≥2 settlements")
 
         if cfg.strategy == "random_two":
-            a, b = rng.choice(settlements, size=2, replace=False)
+            idx_a, idx_b = rng.choice(len(settlements), size=2, replace=False)
+            a, b = settlements[int(idx_a)], settlements[int(idx_b)]
         else:
             a, b = settlements[0], settlements[1]
 

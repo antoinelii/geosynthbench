@@ -6,26 +6,29 @@ from typing import Any
 import networkx as nx
 import numpy as np
 
+from geosynthbench.gen.config import WorldGenConfig
 from geosynthbench.pipeline.writer import RenderArtifacts
 from geosynthbench.tasks.base import TaskConfig
 from geosynthbench.tasks.utils import labels, px_loc
+from geosynthbench.world.types import SettlementId
+from geosynthbench.world.world_state import WorldState
 
 
 @dataclass(frozen=True)
 class N1Config(TaskConfig):
-    world_cfg: Any
+    world_cfg: WorldGenConfig
     clarity_ratio: float = 1.15
     clarity_delta_m: float = 300.0
     strategy: str = "by_id"  # tie-break: "by_id" for determinism
 
 
-def compute_isolation_scores(world) -> dict[str, float]:
+def compute_isolation_scores(world: WorldState) -> dict[str, float]:
     """
     Isolation score per settlement id:
       iso(i) = mean_j shortest_path_length(i,j)
     Uses actual curved RoadSegment.centerline.length for edge weights.
     """
-    G = nx.Graph()
+    G: nx.Graph[SettlementId] = nx.Graph()
     for s in world.settlements:
         G.add_node(s.id)
 
@@ -87,7 +90,7 @@ class N1IsolationTask:
         *,
         sample_idx: int,
         cfg: N1Config,
-        world_t0,
+        world_t0: WorldState,
         render: RenderArtifacts,
         rng: np.random.Generator,
     ) -> dict[str, Any]:

@@ -5,14 +5,16 @@ from typing import Any
 
 import numpy as np
 
+from geosynthbench.gen.config import WorldGenConfig
 from geosynthbench.pipeline.types import RenderArtifacts
 from geosynthbench.tasks.base import TaskConfig
-from geosynthbench.tasks.e1_elevation import _px_loc
+from geosynthbench.tasks.e1_elevation import px_loc
+from geosynthbench.world.world_state import WorldState
 
 
 @dataclass(frozen=True)
 class S1Config(TaskConfig):
-    world_cfg: Any
+    world_cfg: WorldGenConfig
     min_delta: float = 0.1  # slope difference threshold
 
 
@@ -37,7 +39,7 @@ class S1SlopeCompareTask:
         *,
         sample_idx: int,
         cfg: S1Config,
-        world_t0,
+        world_t0: WorldState,
         render: RenderArtifacts,
         rng: np.random.Generator,
     ) -> dict[str, Any]:
@@ -47,6 +49,8 @@ class S1SlopeCompareTask:
 
         a, b = settlements[0], settlements[1]
 
+        if world_t0.terrain is None:
+            raise ValueError("World terrain is not defined")
         sa = world_t0.terrain.sample_slope_point(a.center.x, a.center.y)
         sb = world_t0.terrain.sample_slope_point(b.center.x, b.center.y)
 
@@ -55,8 +59,8 @@ class S1SlopeCompareTask:
 
         answer = "A" if sa > sb else "B"
 
-        a_px = _px_loc(a.center, world_t0)
-        b_px = _px_loc(b.center, world_t0)
+        a_px = px_loc(a.center, world_t0)
+        b_px = px_loc(b.center, world_t0)
 
         prompt = (
             f"[{self.code}] Two settlements are given by pixel coordinates:\n"

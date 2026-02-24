@@ -6,11 +6,15 @@ from typing import Any
 import numpy as np
 from shapely.affinity import rotate
 from shapely.geometry import LineString, Point, Polygon
+from shapely.geometry.base import BaseGeometry
 from shapely.ops import unary_union
 
 from geosynthbench.pipeline.writer import RenderArtifacts
 from geosynthbench.tasks.base import TaskConfig
 from geosynthbench.tasks.utils import generate_t0_sample, px_loc
+from geosynthbench.world.entities import RoadSegment
+from geosynthbench.world.types import BuildingId, RoadId, SettlementId
+from geosynthbench.world.world_state import WorldState
 
 
 @dataclass(frozen=True)
@@ -43,7 +47,7 @@ def _sample_new_settlement_center(
     *,
     rng: np.random.Generator,
     extent: tuple[float, float, float, float],
-    forbidden: Polygon,
+    forbidden: BaseGeometry,
     existing_centers: list[Point],
     min_dist_m: float,
     margin_m: float,
@@ -84,7 +88,7 @@ def _make_rect_footprint(center: Point, w: float, h: float, angle_deg: float) ->
     return rotate(rect, angle_deg, origin=(x0, y0), use_radians=False)
 
 
-def _safe_union_water(world_t0) -> Polygon:
+def _safe_union_water(world_t0: WorldState) -> BaseGeometry:
     waters = list(getattr(world_t0, "water", []))
     if not waters:
         return Polygon()
@@ -117,7 +121,7 @@ class A1RoadPlusBuildingTask:
         self,
         *,
         cfg: A1Config,
-        world_t0,
+        world_t0: WorldState,
         rng: np.random.Generator,
     ):
         import copy
@@ -128,7 +132,7 @@ class A1RoadPlusBuildingTask:
         world_t1 = copy.deepcopy(world_t0)
 
         # --- choose new settlement center (avoid water + keep distance) ---
-        extent = tuple(world_t0.tr.extent)  # (xmin,ymin,xmax,ymax)
+        extent = world_t0.tr.extent  # (xmin,ymin,xmax,ymax)
         water_union = _safe_union_water(world_t0)
         existing_centers = [s.center for s in world_t0.settlements]
 
@@ -142,7 +146,7 @@ class A1RoadPlusBuildingTask:
         )
 
         # new settlement id (simple deterministic string)
-        new_settlement_id = f"s_new_{int(rng.integers(1_000_000, 9_999_999))}"
+        new_settlement_id = SettlementId(f"s_new_{int(rng.integers(1_000_000, 9_999_999))}")
         # radius kept modest
         new_radius = float(rng.uniform(180.0, 300.0))
 
@@ -156,21 +160,16 @@ class A1RoadPlusBuildingTask:
             raise ValueError("Only connect_strategy='nearest' supported in MVP.")
 
         nearest = min(world_t0.settlements, key=lambda s: new_center.distance(s.center))
-        a_id = str(nearest.id)
-        b_id = str(new_settlement_id)
+        a_id = nearest.id
+        b_id = new_settlement_id
 
         road_id = f"r_new_{int(rng.integers(1_000_000, 9_999_999))}"
         centerline = LineString(
             [(nearest.center.x, nearest.center.y), (new_center.x, new_center.y)]
         )
 
-        RoadSegCls = type(world_t0.roads.segments[0]) if world_t0.roads.segments else None
-        if RoadSegCls is None:
-            # fallback: rely on duck-typing fields used elsewhere (id,a_id,b_id,centerline,width_m)
-            raise ValueError("No existing road segment type found (roads.segments empty).")
-
-        new_seg = RoadSegCls(
-            id=road_id,
+        new_seg = RoadSegment(
+            id=RoadId(road_id),
             a_id=a_id,
             b_id=b_id,
             centerline=centerline,
@@ -179,8 +178,7 @@ class A1RoadPlusBuildingTask:
         world_t1.roads.segments.append(new_seg)
 
         # rebuild road graph if supported
-        if hasattr(world_t1.roads, "build_graph_from_segments"):
-            world_t1.roads.build_graph_from_segments()
+        world_t1.roads.rebuild_graph()
 
         # --- generate NEW buildings near new road / new settlement ---
         n_new = int(rng.integers(cfg.n_new_buildings[0], cfg.n_new_buildings[1] + 1))
@@ -229,7 +227,7 @@ class A1RoadPlusBuildingTask:
             ):
                 continue
 
-            b_id = f"b_new_{int(rng.integers(1_000_000, 9_999_999))}"
+            b_id = BuildingId(f"b_new_{int(rng.integers(1_000_000, 9_999_999))}")
             BuildingCls = type(world_t1.buildings[0]) if world_t1.buildings else None
             if BuildingCls is None:
                 raise ValueError("No existing Building type found (world.buildings empty).")
@@ -251,7 +249,7 @@ class A1RoadPlusBuildingTask:
         *,
         sample_idx: int,
         cfg: A1Config,
-        world_t0,
+        world_t0: WorldState,
         render: RenderArtifacts,
         rng: np.random.Generator,
     ) -> dict[str, Any]:
