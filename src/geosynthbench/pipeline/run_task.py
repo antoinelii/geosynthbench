@@ -207,7 +207,11 @@ def build_e1_record(
                 sample_idx=sample_idx, world_t0=world_t0, rng=render_rng
             )
             record = task.build_record(
-                sample_idx=sample_idx, cfg=task_cfg, world_t0=world_t0, render=render, rng=task_rng
+                sample_idx=sample_idx,
+                task_cfg=task_cfg,
+                world_t0=world_t0,
+                render=render,
+                rng=task_rng,
             )
             record = _normalize_record_for_viewer(record, task_code="e1", sample_id=sample_id)
             log.success(f"[E1] built {sample_id} OK (attempt={attempt})")
@@ -263,7 +267,7 @@ def build_d1_record(
             )
             record = task.build_record(
                 sample_idx=sample_idx,
-                cfg=task_cfg,
+                task_cfg=task_cfg,
                 world_t0=world_t0,
                 render=render,
                 rng=task_rng,
@@ -313,6 +317,8 @@ def build_s1_record(
                 raise ValueError("Need ≥2 settlements")
 
             # slope diversity guard (same as script) :contentReference[oaicite:14]{index=14}
+            if world_t0.terrain is None:
+                raise ValueError("Terrain is required for slope-based task")
             s = world_t0.terrain.slope()
             if float(np.percentile(s, 95) - np.percentile(s, 50)) < 0.02:
                 raise ValueError("Terrain slope diversity too low")
@@ -320,7 +326,7 @@ def build_s1_record(
             render = writer.render_and_save_t0(sample_idx=sample_idx, world_t0=world_t0, rng=rng)
             record = task.build_record(
                 sample_idx=sample_idx,
-                cfg=task_cfg,
+                task_cfg=task_cfg,
                 world_t0=world_t0,
                 render=render,
                 rng=rng,
@@ -384,7 +390,7 @@ def build_n1_record(
             render = writer.render_and_save_t0(sample_idx=sample_idx, world_t0=world_t0, rng=rng)
             record = task.build_record(
                 sample_idx=sample_idx,
-                cfg=task_cfg,
+                task_cfg=task_cfg,
                 world_t0=world_t0,
                 render=render,
                 rng=rng,
@@ -425,16 +431,16 @@ def build_a1_record(
     last_err: Exception | None = None
     for attempt in range(max_attempts):
         try:
-            world_t0 = task.generate_t0(task_cfg, rng)
+            world_t0 = task.generate_t0(task_cfg)
 
             # Build t1 inside task, then render pair
             tmp = task.build_record(
                 sample_idx=sample_idx,
-                cfg=task_cfg,
+                task_cfg=task_cfg,
                 world_t0=world_t0,
                 render=RenderArtifacts(  # will be overwritten below (we just need a placeholder type)
-                    sample_dir=Path(""),
-                    t0_rgb=Path(""),
+                    sample_dir="",
+                    t0_rgb="",
                     t0_mask=None,
                     t0_elev=None,
                     t1_rgb=None,
@@ -472,7 +478,7 @@ def build_a1_record(
             # Rebuild final record with real render artifacts
             record = task.build_record(
                 sample_idx=sample_idx,
-                cfg=task_cfg,
+                task_cfg=task_cfg,
                 world_t0=world_t0,
                 render=render,
                 rng=rng,
