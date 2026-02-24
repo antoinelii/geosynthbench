@@ -9,7 +9,7 @@ from shapely.geometry import LineString, Point, Polygon
 from shapely.ops import unary_union
 
 from geosynthbench.pipeline.writer import RenderArtifacts
-from geosynthbench.tasks.utils import _px_loc, generate_t0_sample
+from geosynthbench.tasks.utils import generate_t0_sample, px_loc
 
 
 @dataclass(frozen=True)
@@ -265,14 +265,14 @@ class A1RoadPlusBuildingTask:
 
         # Pixel anchors for reasoning prompt
         new_settlement = next(s for s in world_t1.settlements if str(s.id) == str(new_sid))
-        new_px = _px_loc(new_settlement.center, world_t1)
+        new_px = px_loc(new_settlement.center, world_t1)
 
         # Find road segment we created
         new_seg = next(seg for seg in world_t1.roads.segments if str(seg.id) == str(new_rid))
         a_pt = Point(new_seg.centerline.coords[0])
         b_pt = Point(new_seg.centerline.coords[-1])
-        a_px = _px_loc(a_pt, world_t1)
-        b_px = _px_loc(b_pt, world_t1)
+        a_px = px_loc(a_pt, world_t1)
+        b_px = px_loc(b_pt, world_t1)
 
         answer_int = int(len(new_bids))
 
@@ -299,7 +299,7 @@ class A1RoadPlusBuildingTask:
         new_building_centers_px: list[list[int]] = []
         for b in new_buildings:
             c = b.footprint.centroid
-            px = _px_loc(Point(c.x, c.y), world_t1)
+            px = px_loc(Point(c.x, c.y), world_t1)
             new_building_centers_px.append([px[0], px[1]])
 
         return {

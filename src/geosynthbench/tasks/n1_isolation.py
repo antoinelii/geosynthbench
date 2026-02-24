@@ -7,7 +7,7 @@ import networkx as nx
 import numpy as np
 
 from geosynthbench.pipeline.writer import RenderArtifacts
-from geosynthbench.tasks.utils import _labels, _px_loc
+from geosynthbench.tasks.utils import labels, px_loc
 
 
 @dataclass(frozen=True)
@@ -92,13 +92,13 @@ class N1IsolationTask:
     ) -> dict[str, Any]:
         # Build label mapping A.. for all settlements (4–6)
         settlements = list(world_t0.settlements)
-        labs = _labels(len(settlements))
+        labs = labels(len(settlements))
 
         label_to_id: dict[str, str] = {}
         label_to_px: dict[str, list[int]] = {}
 
         for lab, s in zip(labs, settlements):
-            px = _px_loc(s.center, world_t0)
+            px = px_loc(s.center, world_t0)
             label_to_id[lab] = str(s.id)
             label_to_px[lab] = [px[0], px[1]]
 

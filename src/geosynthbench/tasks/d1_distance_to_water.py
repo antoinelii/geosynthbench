@@ -6,7 +6,7 @@ from typing import Any
 import numpy as np
 
 from geosynthbench.pipeline.types import RenderArtifacts
-from geosynthbench.tasks.utils import _px_loc
+from geosynthbench.tasks.utils import px_loc
 
 
 @dataclass(frozen=True)
@@ -64,8 +64,8 @@ class D1DistanceToWaterTask:
 
         answer = "A" if da < db else "B"
 
-        a_px = _px_loc(a.center, world_t0)
-        b_px = _px_loc(b.center, world_t0)
+        a_px = px_loc(a.center, world_t0)
+        b_px = px_loc(b.center, world_t0)
 
         prompt = (
             f"[{self.code}] Two settlements are given by pixel coordinates:\n"

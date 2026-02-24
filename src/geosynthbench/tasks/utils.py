@@ -8,14 +8,16 @@ from geosynthbench.render.renderer import (
     mask_layers_to_mask_image,
     render_world_textured_with_mask,
 )
-from geosynthbench.world.raster import RasterTransform
+from geosynthbench.world.raster import RasterTransform, RasterTransformConfig
 from geosynthbench.world.world_state import WorldState
 
-tr_ref_config = {
-    "extent": (0.0, 0.0, float(512 * 5), float(512 * 5)),
-    "width_px": 512,
-    "height_px": 512,
-}
+tr_ref_config = RasterTransformConfig(
+    {
+        "extent": (0.0, 0.0, float(512 * 5), float(512 * 5)),
+        "width_px": 512,
+        "height_px": 512,
+    }
+)
 
 tr_ref = RasterTransform(
     extent=tr_ref_config["extent"],
@@ -30,10 +32,12 @@ def generate_t0_sample(cfg: WorldGenConfig) -> WorldState:
 
 
 def render_t0_t1_samples(
-    w0: WorldState, w1: WorldState
+    w0: WorldState,
+    w1: WorldState,
+    render_rng: np.random.Generator,
 ) -> tuple[tuple[Image, Image], tuple[Image, Image]]:
-    random_seed = np.random.default_rng().integers(0, 2**63 - 1, dtype=np.int64)
-    common_rng = np.random.default_rng(random_seed)
+    common_seed = render_rng.integers(0, 1_000_000)
+    common_rng = np.random.default_rng(common_seed)
     img0, mask_res0 = render_world_textured_with_mask(w0, rng=common_rng)
     img1, mask_res1 = render_world_textured_with_mask(w1, rng=common_rng)
     sem_mask0 = mask_layers_to_mask_image(mask_res0)
@@ -41,11 +45,11 @@ def render_t0_t1_samples(
     return (img0, sem_mask0), (img1, sem_mask1)
 
 
-def _px_loc(point: Point, world: WorldState) -> tuple[int, int]:
+def px_loc(point: Point, world: WorldState) -> tuple[int, int]:
     u, v = world.tr.world_to_px(point.x, point.y)
     return int(u), int(v)
 
 
-def _labels(n: int) -> list[str]:
+def labels(n: int) -> list[str]:
     # Supports up to 26 settlements; your config is 4–6 so it's fine
     return [chr(ord("A") + i) for i in range(n)]

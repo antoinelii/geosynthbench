@@ -10,6 +10,13 @@ from shapely.prepared import prep
 
 
 @dataclass(frozen=True)
+class RasterTransformConfig(TypedDict):
+    extent: tuple[float, float, float, float]
+    width_px: int
+    height_px: int
+
+
+@dataclass(frozen=True)
 class RasterTransform:
     """
     Maps world coordinates (meters) to pixel coordinates.
