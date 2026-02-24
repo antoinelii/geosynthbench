@@ -30,6 +30,7 @@ def build_one_record(
             world_seed=world_seed,
             render_seed=render_seed,
             task_seed=task_seed,
+            max_attempts=10,
         )
     if t == "d1":
         return build_d1_record(
@@ -38,6 +39,7 @@ def build_one_record(
             world_seed=world_seed,
             render_seed=render_seed,
             task_seed=task_seed,
+            max_attempts=10,
         )
     if t == "s1":
         return build_s1_record(
@@ -46,6 +48,7 @@ def build_one_record(
             world_seed=world_seed,
             render_seed=render_seed,
             task_seed=task_seed,
+            max_attempts=10,
         )
     if t == "n1":
         return build_n1_record(
@@ -54,6 +57,7 @@ def build_one_record(
             world_seed=world_seed,
             render_seed=render_seed,
             task_seed=task_seed,
+            max_attempts=10,
         )
     if t == "a1":
         return build_a1_record(
@@ -62,5 +66,6 @@ def build_one_record(
             world_seed=world_seed,
             render_seed=render_seed,
             task_seed=task_seed,
+            max_attempts=10,
         )
     raise ValueError(f"Unknown task_code={task_code!r}")

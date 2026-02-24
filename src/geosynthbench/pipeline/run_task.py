@@ -183,7 +183,7 @@ def build_e1_record(
     world_seed: int,
     render_seed: int,
     task_seed: int,
-    max_attempts: int = 50,
+    max_attempts: int = 20,
 ) -> dict[str, Any]:
     """
     Single-record version of scripts/generate_e1.py :contentReference[oaicite:7]{index=7}
@@ -194,18 +194,17 @@ def build_e1_record(
 
     sample_idx = _parse_sample_idx(sample_id)
 
-    #### CONFIGURATION ####
-    # world
-    cfg0 = make_e1_world_cfg(seed=world_seed)
-    # render
-    render_rng = np.random.default_rng(render_seed)
-    # task
-    task = E1ElevationCompareTask()
-    task_cfg = E1Config(world_cfg=cfg0, min_delta_m=5.0, settlement_strategy="first_two")
     task_rng = np.random.default_rng(task_seed)
+    render_rng = np.random.default_rng(render_seed)
 
     last_err: Exception | None = None
     for attempt in range(max_attempts):
+        #### CONFIGURATION ####
+        # world
+        world_seed_ = int(world_seed + attempt)
+        cfg0 = make_e1_world_cfg(seed=world_seed_)
+        task = E1ElevationCompareTask()
+        task_cfg = E1Config(world_cfg=cfg0, min_delta_m=5.0, settlement_strategy="first_two")
         try:
             world_t0 = task.generate_t0(task_cfg)
             render = writer.render_and_save_t0(
@@ -237,7 +236,7 @@ def build_d1_record(
     world_seed: int,
     render_seed: int,
     task_seed: int,
-    max_attempts: int = 60,
+    max_attempts: int = 20,
 ) -> dict[str, Any]:
     """
     Single-record version of scripts/generate_d1.py :contentReference[oaicite:9]{index=9}
@@ -248,16 +247,17 @@ def build_d1_record(
 
     sample_idx = _parse_sample_idx(sample_id)
 
-    cfg0 = make_d1_world_cfg(seed=world_seed)
-    render_rng = np.random.default_rng(render_seed)
     task_rng = np.random.default_rng(task_seed)
-
-    task = D1DistanceToWaterTask()
-    cfg0 = make_d1_world_cfg(seed=world_seed)
-    task_cfg = D1Config(world_cfg=cfg0, min_delta_m=20.0, strategy="first_two")
+    render_rng = np.random.default_rng(render_seed)
 
     last_err: Exception | None = None
     for attempt in range(max_attempts):
+        #### CONFIGURATION ####
+        # world
+        world_seed_ = int(world_seed + attempt)
+        cfg0 = make_d1_world_cfg(seed=world_seed_)
+        task = D1DistanceToWaterTask()
+        task_cfg = D1Config(world_cfg=cfg0, min_delta_m=20.0, strategy="first_two")
         try:
             world_t0 = task.generate_t0(task_cfg)
 
@@ -308,14 +308,17 @@ def build_s1_record(
 
     sample_idx = _parse_sample_idx(sample_id)
 
-    task = S1SlopeCompareTask()
-    cfg0 = make_s1_world_cfg(seed=world_seed)
-    task_cfg = S1Config(world_cfg=cfg0, min_delta=0.02)
-    render_rng = np.random.default_rng(render_seed)
     task_rng = np.random.default_rng(task_seed)
+    render_rng = np.random.default_rng(render_seed)
 
     last_err: Exception | None = None
     for attempt in range(max_attempts):
+        #### CONFIGURATION ####
+        # world
+        world_seed_ = int(world_seed + attempt)
+        cfg0 = make_s1_world_cfg(seed=world_seed_)
+        task = S1SlopeCompareTask()
+        task_cfg = S1Config(world_cfg=cfg0, min_delta=0.02)
         try:
             world_t0 = task.generate_t0(task_cfg)
 
@@ -370,15 +373,20 @@ def build_n1_record(
 
     sample_idx = _parse_sample_idx(sample_id)
 
-    task = N1IsolationTask()
-    cfg0 = make_n1_world_cfg(seed=world_seed)
-    task_cfg = N1Config(world_cfg=cfg0, clarity_ratio=1.10, clarity_delta_m=200.0, strategy="by_id")
-    render_rng = np.random.default_rng(render_seed)
     task_rng = np.random.default_rng(task_seed)
+    render_rng = np.random.default_rng(render_seed)
 
     last_err: Exception | None = None
     for attempt in range(max_attempts):
         try:
+            #### CONFIGURATION ####
+            # world
+            world_seed_ = int(world_seed + attempt)
+            cfg0 = make_n1_world_cfg(seed=world_seed_)
+            task = N1IsolationTask()
+            task_cfg = N1Config(
+                world_cfg=cfg0, clarity_ratio=1.10, clarity_delta_m=200.0, strategy="by_id"
+            )
             try:
                 world_t0 = task.generate_t0(task_cfg)
             except RuntimeError as e:
@@ -435,14 +443,17 @@ def build_a1_record(
 
     sample_idx = _parse_sample_idx(sample_id)
 
-    task = A1RoadPlusBuildingTask()
-    cfg0 = make_a1_world_cfg(seed=world_seed)
-    task_cfg = A1Config(world_cfg=cfg0)
     render_rng = np.random.default_rng(render_seed)
     task_rng = np.random.default_rng(task_seed)
 
     last_err: Exception | None = None
     for attempt in range(max_attempts):
+        #### CONFIGURATION ####
+        # world
+        world_seed_ = int(world_seed + attempt)
+        cfg0 = make_a1_world_cfg(seed=world_seed_)
+        task = A1RoadPlusBuildingTask()
+        task_cfg = A1Config(world_cfg=cfg0)
         try:
             world_t0 = task.generate_t0(task_cfg)
 
