@@ -58,7 +58,7 @@ def main() -> None:
         help="Samples per task id (int or comma-separated list of ints) to match task ids (default: 3)\
                         . If list, must match number of task ids. If int, same for all task ids.",
     )
-    ap.add_argument("--seed", type=int, default=12345, help="Base seed for reproducibility")
+    ap.add_argument("--seed", type=int, default=0, help="Base seed for reproducibility")
     ap.add_argument(
         "--overwrite",
         type=bool,
