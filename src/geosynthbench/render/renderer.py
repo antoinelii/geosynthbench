@@ -31,6 +31,8 @@ from geosynthbench.render.textures.params import (
 from geosynthbench.render.textures.post import postprocess
 from geosynthbench.render.textures.shadows import add_building_shadows
 from geosynthbench.render.textures.terrain import background_palette_from_elevation
+from geosynthbench.world.entities import EntityType
+from geosynthbench.world.types import LayerKind
 from geosynthbench.world.world_state import WorldState
 
 
@@ -61,14 +63,13 @@ def draw_poly_mask(
         draw.polygon(hole, fill=0)
 
 
-def render_world_textured(world: WorldState, rng: np.random.Generator) -> Image.Image:
+def render_world_textured(
+    world: WorldState,
+    rng: np.random.Generator,
+) -> Image.Image:
     W, H = world.tr.width_px, world.tr.height_px
 
-    elev = (
-        world.terrain.elevation_m.astype(np.float32)
-        if world.terrain is not None
-        else np.zeros((H, W), np.float32)
-    )
+    elev = world.terrain.elevation_m if world.terrain is not None else np.zeros((H, W), np.float32)
 
     scene = SceneParams(
         biome="temperate",
@@ -82,7 +83,7 @@ def render_world_textured(world: WorldState, rng: np.random.Generator) -> Image.
     )
 
     # 1) Build masks (bool arrays) using PIL drawing (recommended for now)
-    mask_build_res = build_masks_from_world(
+    mask_build_res: MaskLayers = build_masks_from_world(
         world
     )  # you implement using your polygon->px ring helper
     masks = mask_build_res.masks
@@ -125,14 +126,13 @@ def render_world_textured(world: WorldState, rng: np.random.Generator) -> Image.
     # 4) Layers
     layers = [
         water_palette(masks.get("water", np.zeros((H, W), bool)), scene, wp, rng),
-        vegetation_palette(masks.get("veg", np.zeros((H, W), bool)), scene, vp, rng),
+        vegetation_palette(masks.get("vegetation", np.zeros((H, W), bool)), scene, vp, rng),
         settlement_palette(masks.get("settlement", np.zeros((H, W), bool)), scene, sp, rng),
-        roads_palette(masks.get("roads", np.zeros((H, W), bool)), scene, rp, rng),
+        roads_palette(masks.get("road", np.zeros((H, W), bool)), scene, rp, rng),
     ]
 
     for b in building_items:
-        b_rng = np.random.default_rng(int(rng.integers(0, 2**63 - 1, dtype=np.int64)))
-        layers.append(building_palette(b["mask"], b["settlement_id"], scene, bp, b_rng))
+        layers.append(building_palette(b["mask"], b["settlement_id"], scene, bp, rng))
 
     rgb = render_full_rgb(bg, layers)
 
@@ -162,15 +162,12 @@ def render_world_textured(world: WorldState, rng: np.random.Generator) -> Image.
 
 
 def render_world_textured_with_mask(
-    world: WorldState, rng: np.random.Generator
+    world: WorldState,
+    rng: np.random.Generator,
 ) -> tuple[Image.Image, MaskLayers]:
     W, H = world.tr.width_px, world.tr.height_px
 
-    elev = (
-        world.terrain.elevation_m.astype(np.float32)
-        if world.terrain is not None
-        else np.zeros((H, W), np.float32)
-    )
+    elev = world.terrain.elevation_m if world.terrain is not None else np.zeros((H, W), np.float32)
 
     scene = SceneParams(
         biome="temperate",
@@ -184,7 +181,7 @@ def render_world_textured_with_mask(
     )
 
     # 1) Build masks (bool arrays) using PIL drawing (recommended for now)
-    mask_build_res = build_masks_from_world(
+    mask_build_res: MaskLayers = build_masks_from_world(
         world
     )  # you implement using your polygon->px ring helper
     masks = mask_build_res.masks
@@ -203,7 +200,9 @@ def render_world_textured_with_mask(
     )
     vp = VegetationParams(
         alpha=0.85,
-        density=float(rng.uniform(0.95, 1.0)),  # need to be 1 veg for masks to be interesting
+        density=float(
+            rng.uniform(0.95, 1.0)
+        ),  # need more veg for masks to be visible in test render
         patchiness=float(rng.uniform(0.4, 0.9)),
         texture_scale_px=float(rng.uniform(10, 22)),
     )
@@ -225,14 +224,13 @@ def render_world_textured_with_mask(
     # 4) Layers
     layers = [
         water_palette(masks.get("water", np.zeros((H, W), bool)), scene, wp, rng),
-        vegetation_palette(masks.get("veg", np.zeros((H, W), bool)), scene, vp, rng),
+        vegetation_palette(masks.get("vegetation", np.zeros((H, W), bool)), scene, vp, rng),
         settlement_palette(masks.get("settlement", np.zeros((H, W), bool)), scene, sp, rng),
-        roads_palette(masks.get("roads", np.zeros((H, W), bool)), scene, rp, rng),
+        roads_palette(masks.get("road", np.zeros((H, W), bool)), scene, rp, rng),
     ]
 
     for b in building_items:
-        b_rng = np.random.default_rng(int(rng.integers(0, 2**63 - 1, dtype=np.int64)))
-        layers.append(building_palette(b["mask"], b["settlement_id"], scene, bp, b_rng))
+        layers.append(building_palette(b["mask"], b["settlement_id"], scene, bp, rng))
 
     rgb = render_full_rgb(bg, layers)
 
@@ -258,10 +256,7 @@ def render_world_textured_with_mask(
         blur_k=3,
         rng=rng,
     )
-    return (
-        Image.fromarray(out_u8, mode="RGB"),
-        mask_build_res,
-    )
+    return (Image.fromarray(out_u8, mode="RGB"), mask_build_res)
 
 
 def mask_layers_to_mask_image(mask_build_res: MaskLayers) -> Image.Image:
@@ -270,13 +265,13 @@ def mask_layers_to_mask_image(mask_build_res: MaskLayers) -> Image.Image:
     masks = mask_build_res.masks
     W, H = masks["water"].shape[1], masks["water"].shape[0]
     out = np.zeros((H, W), dtype=np.uint8)
-    class_to_val = {
-        "background": 0,
-        "water": 1,
-        "veg": 2,
-        "settlement": 3,
-        "roads": 4,
-        "building": 5,
+    class_to_val: dict[LayerKind, int] = {
+        "terrain": EntityType.BG.value,
+        "water": EntityType.WATER.value,
+        "vegetation": EntityType.VEG.value,
+        "settlement": EntityType.SETTLEMENT.value,
+        "road": EntityType.ROAD.value,
+        "building": EntityType.BUILDING.value,
     }
     for cls, mask in masks.items():
         val = class_to_val.get(cls, 255)

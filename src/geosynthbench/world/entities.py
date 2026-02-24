@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import IntEnum
+from typing import TypedDict
 
 import networkx as nx
 import numpy as np
@@ -18,7 +19,7 @@ from geosynthbench.world.types import (
 
 
 # Create entitities enum
-class EntityType(Enum):
+class EntityType(IntEnum):
     BG = 0
     WATER = 1
     VEG = 2
@@ -80,7 +81,7 @@ class Building:
 
 
 @dataclass(frozen=True)
-class BuildingMaskItem:
+class BuildingMaskItem(TypedDict):
     id: BuildingId
     settlement_id: SettlementId
     mask: npt.NDArray[np.bool_]  # bool[H,W]
