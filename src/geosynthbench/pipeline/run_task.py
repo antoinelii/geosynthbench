@@ -253,9 +253,7 @@ def build_d1_record(
     task_rng = np.random.default_rng(task_seed)
 
     task = D1DistanceToWaterTask()
-    cfg0 = make_d1_world_cfg(
-        seed=0
-    )  # seed overridden via rng in task.generate_t0 :contentReference[oaicite:10]{index=10}
+    cfg0 = make_d1_world_cfg(seed=world_seed)
     task_cfg = D1Config(world_cfg=cfg0, min_delta_m=20.0, strategy="first_two")
 
     last_err: Exception | None = None
@@ -373,9 +371,7 @@ def build_n1_record(
     sample_idx = _parse_sample_idx(sample_id)
 
     task = N1IsolationTask()
-    cfg0 = make_n1_world_cfg(
-        seed=world_seed
-    )  # seed mutated inside task.generate_t0 :contentReference[oaicite:16]{index=16}
+    cfg0 = make_n1_world_cfg(seed=world_seed)
     task_cfg = N1Config(world_cfg=cfg0, clarity_ratio=1.10, clarity_delta_m=200.0, strategy="by_id")
     render_rng = np.random.default_rng(render_seed)
     task_rng = np.random.default_rng(task_seed)
