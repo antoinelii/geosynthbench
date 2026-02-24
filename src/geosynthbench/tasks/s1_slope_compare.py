@@ -6,11 +6,12 @@ from typing import Any
 import numpy as np
 
 from geosynthbench.pipeline.types import RenderArtifacts
+from geosynthbench.tasks.base import TaskConfig
 from geosynthbench.tasks.e1_elevation import _px_loc
 
 
 @dataclass(frozen=True)
-class S1Config:
+class S1Config(TaskConfig):
     world_cfg: Any
     min_delta: float = 0.1  # slope difference threshold
 

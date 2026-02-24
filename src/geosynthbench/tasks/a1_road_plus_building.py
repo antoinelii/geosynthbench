@@ -9,11 +9,12 @@ from shapely.geometry import LineString, Point, Polygon
 from shapely.ops import unary_union
 
 from geosynthbench.pipeline.writer import RenderArtifacts
+from geosynthbench.tasks.base import TaskConfig
 from geosynthbench.tasks.utils import generate_t0_sample, px_loc
 
 
 @dataclass(frozen=True)
-class A1Config:
+class A1Config(TaskConfig):
     # uses your WorldGenConfig instance directly
     world_cfg: Any
 

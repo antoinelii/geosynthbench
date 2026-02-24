@@ -6,11 +6,12 @@ from typing import Any
 import numpy as np
 
 from geosynthbench.pipeline.types import RenderArtifacts
+from geosynthbench.tasks.base import TaskConfig
 from geosynthbench.tasks.utils import px_loc
 
 
 @dataclass(frozen=True)
-class D1Config:
+class D1Config(TaskConfig):
     world_cfg: Any
     min_delta_m: float = 10.0
     strategy: str = "first_two"

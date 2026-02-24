@@ -8,10 +8,11 @@ from shapely.geometry import Point
 
 from geosynthbench.gen.config import WorldGenConfig
 from geosynthbench.pipeline.writer import RenderArtifacts
+from geosynthbench.tasks.base import TaskConfig
 
 
 @dataclass(frozen=True)
-class E1Config:
+class E1Config(TaskConfig):
     # uses your WorldGenConfig instance directly
     world_cfg: WorldGenConfig
     min_delta_m: float = 5.0

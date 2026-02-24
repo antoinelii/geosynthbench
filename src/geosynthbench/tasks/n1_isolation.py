@@ -7,11 +7,12 @@ import networkx as nx
 import numpy as np
 
 from geosynthbench.pipeline.writer import RenderArtifacts
+from geosynthbench.tasks.base import TaskConfig
 from geosynthbench.tasks.utils import labels, px_loc
 
 
 @dataclass(frozen=True)
-class N1Config:
+class N1Config(TaskConfig):
     world_cfg: Any
     clarity_ratio: float = 1.15
     clarity_delta_m: float = 300.0
