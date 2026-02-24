@@ -84,11 +84,13 @@ class DatasetWriter:
                 from geosynthbench.render.semantic import SemanticClass
 
                 sem[masks.get("water", np.zeros((H, W), bool))] = SemanticClass.WATER.value
-                sem[masks.get("veg", np.zeros((H, W), bool))] = SemanticClass.VEGETATION.value
+                sem[masks.get("vegetation", np.zeros((H, W), bool))] = (
+                    SemanticClass.VEGETATION.value
+                )
                 sem[masks.get("settlement", np.zeros((H, W), bool))] = (
                     SemanticClass.SETTLEMENT.value
                 )
-                sem[masks.get("roads", np.zeros((H, W), bool))] = SemanticClass.ROAD.value
+                sem[masks.get("road", np.zeros((H, W), bool))] = SemanticClass.ROAD.value
 
                 for b in res.building_items:
                     sem[b["mask"]] = SemanticClass.BUILDING.value
@@ -257,9 +259,9 @@ class DatasetWriter:
             sem = np.zeros((H, W), dtype=np.uint8)
 
             sem[masks.get("water", np.zeros((H, W), bool))] = SemanticClass.WATER.value
-            sem[masks.get("veg", np.zeros((H, W), bool))] = SemanticClass.VEGETATION.value
+            sem[masks.get("vegetation", np.zeros((H, W), bool))] = SemanticClass.VEGETATION.value
             sem[masks.get("settlement", np.zeros((H, W), bool))] = SemanticClass.SETTLEMENT.value
-            sem[masks.get("roads", np.zeros((H, W), bool))] = SemanticClass.ROAD.value
+            sem[masks.get("road", np.zeros((H, W), bool))] = SemanticClass.ROAD.value
 
             for b in res.building_items:
                 sem[b["mask"]] = SemanticClass.BUILDING.value
