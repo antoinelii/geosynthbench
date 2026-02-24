@@ -63,104 +63,6 @@ def draw_poly_mask(
         draw.polygon(hole, fill=0)
 
 
-def render_world_textured(
-    world: WorldState,
-    rng: np.random.Generator,
-) -> Image.Image:
-    W, H = world.tr.width_px, world.tr.height_px
-
-    elev = world.terrain.elevation_m if world.terrain is not None else np.zeros((H, W), np.float32)
-
-    scene = SceneParams(
-        biome="temperate",
-        sun_azimuth_deg=float(rng.uniform(0, 360)),
-        sun_altitude_deg=float(rng.uniform(20, 60)),
-        sun_intensity=float(rng.uniform(0.8, 1.2)),
-        exposure=float(rng.uniform(0.9, 1.1)),
-        gamma=float(rng.uniform(0.95, 1.15)),
-        haze=float(rng.uniform(0.0, 0.08)),
-        saturation=float(rng.uniform(0.9, 1.15)),
-    )
-
-    # 1) Build masks (bool arrays) using PIL drawing (recommended for now)
-    mask_build_res: MaskLayers = build_masks_from_world(
-        world
-    )  # you implement using your polygon->px ring helper
-    masks = mask_build_res.masks
-    building_items = mask_build_res.building_items
-    # settlement_polys = mask_build_res.settlement_polys  # for debug / visualization if
-
-    # 2) Background
-    bg = background_palette_from_elevation(elev, scene, rng)
-
-    # 3) Params
-    wp = WaterParams(
-        alpha=0.88,
-        turbidity=float(rng.uniform(0.1, 0.6)),
-        specular=float(rng.uniform(0.0, 0.35)),
-        shoreline_width_px=3,
-    )
-    vp = VegetationParams(
-        alpha=0.85,
-        density=float(
-            rng.uniform(0.95, 1.0)
-        ),  # need more veg for masks to be visible in test render
-        patchiness=float(rng.uniform(0.4, 0.9)),
-        texture_scale_px=float(rng.uniform(10, 22)),
-    )
-    rp = RoadParams(
-        alpha=0.96,
-        wear=float(rng.uniform(0.2, 0.7)),
-        lane_hint=float(rng.uniform(0.0, 0.25)),
-        texture_scale_px=float(rng.uniform(8, 14)),
-    )
-    sp = SettlementParams(
-        alpha=0.65, impervious=float(rng.uniform(0.5, 0.95)), grime=float(rng.uniform(0.1, 0.6))
-    )
-    bp = BuildingParams(
-        alpha=0.98,
-        roof_variation=float(rng.uniform(0.4, 1.0)),
-        shadow_strength=float(rng.uniform(0.1, 0.35)),
-    )
-
-    # 4) Layers
-    layers = [
-        water_palette(masks.get("water", np.zeros((H, W), bool)), scene, wp, rng),
-        vegetation_palette(masks.get("vegetation", np.zeros((H, W), bool)), scene, vp, rng),
-        settlement_palette(masks.get("settlement", np.zeros((H, W), bool)), scene, sp, rng),
-        roads_palette(masks.get("road", np.zeros((H, W), bool)), scene, rp, rng),
-    ]
-
-    for b in building_items:
-        layers.append(building_palette(b["mask"], b["settlement_id"], scene, bp, rng))
-
-    rgb = render_full_rgb(bg, layers)
-
-    # 5) Shadows from union of all buildings (cheap + effective)
-    all_b = np.zeros((H, W), dtype=bool)
-    for b in building_items:
-        all_b |= b["mask"]
-    rgb = add_building_shadows(
-        rgb,
-        all_b,
-        sun_azimuth_deg=scene.sun_azimuth_deg,
-        strength=bp.shadow_strength,
-        length_px=5,
-    )
-
-    # 6) Postprocess
-    out_u8 = postprocess(
-        rgb,
-        exposure=scene.exposure,
-        gamma=scene.gamma,
-        saturation=scene.saturation,
-        grain=0.012,
-        blur_k=3,
-        rng=rng,
-    )
-    return Image.fromarray(out_u8, mode="RGB")
-
-
 def render_world_textured_with_mask(
     world: WorldState,
     rng: np.random.Generator,
@@ -259,6 +161,14 @@ def render_world_textured_with_mask(
     return (Image.fromarray(out_u8, mode="RGB"), mask_build_res)
 
 
+def render_world_textured(
+    world: WorldState,
+    rng: np.random.Generator,
+) -> Image.Image:
+    im, _ = render_world_textured_with_mask(world, rng)
+    return im
+
+
 def mask_layers_to_mask_image(mask_build_res: MaskLayers) -> Image.Image:
     # convert the dict of bool masks to a single PIL image with different values for each class
     # (for visualization / debug purposes, not used in rendering)
@@ -273,6 +183,8 @@ def mask_layers_to_mask_image(mask_build_res: MaskLayers) -> Image.Image:
         "road": EntityType.ROAD.value,
         "building": EntityType.BUILDING.value,
     }
+    # semantic id map with simple priority order:
+    # BG < water < veg < settlement < roads < buildings (buildings highest)
     for cls, mask in masks.items():
         val = class_to_val.get(cls, 255)
         out[mask] = val
