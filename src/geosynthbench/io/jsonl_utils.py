@@ -60,7 +60,7 @@ def append_world_t0_jsonl(
 
     record: dict[str, Any] = {
         "sample_id": sample_id,
-        "t0": world_to_dict(world, include_terrain_ref=terrain_ref),
+        "t0": world_to_dict(world, elevation_path=terrain_ref),
     }
     if extra:
         record["meta"] = extra
