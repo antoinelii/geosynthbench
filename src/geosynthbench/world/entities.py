@@ -60,10 +60,10 @@ class RoadSegment:
 @dataclass
 class RoadNetwork:
     segments: list[RoadSegment] = field(default_factory=lambda: [])
-    graph: nx.Graph[SettlementId] = field(default_factory=lambda: nx.Graph(), init=False)
+    graph: nx.Graph = field(default_factory=lambda: nx.Graph(), init=False)
 
     def rebuild_graph(self) -> None:
-        g: nx.Graph[SettlementId] = nx.Graph()
+        g: nx.Graph = nx.Graph()
         for seg in self.segments:
             g.add_node(seg.a_id)
             g.add_node(seg.b_id)

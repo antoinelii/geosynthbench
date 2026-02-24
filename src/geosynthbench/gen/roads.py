@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Any, cast
-
 import networkx as nx
 import numpy as np
 from shapely.geometry import LineString, Point
@@ -25,13 +23,12 @@ def _complete_graph_edges(world: WorldState) -> list[tuple[SettlementId, Settlem
 
 
 def _mst_edges(world: WorldState) -> list[tuple[SettlementId, SettlementId]]:
-    g: nx.Graph[SettlementId] = nx.Graph()  # later convert to SettlementId keys
+    g: nx.Graph = nx.Graph()  # later convert to SettlementId keys
     edges = _complete_graph_edges(world)
     for a_id, b_id, d in edges:
         g.add_edge(a_id, b_id, weight=d)
 
-    mst_any: nx.Graph[Any] = nx.minimum_spanning_tree(g, weight="weight")  # type: ignore
-    mst = cast(nx.Graph[SettlementId], mst_any)
+    mst: nx.Graph = nx.minimum_spanning_tree(g, weight="weight")  # type: ignore
 
     return [(u, v) for (u, v) in mst.edges()]
 
