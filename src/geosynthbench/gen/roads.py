@@ -23,14 +23,14 @@ def _complete_graph_edges(world: WorldState) -> list[tuple[SettlementId, Settlem
 
 
 def _mst_edges(world: WorldState) -> list[tuple[SettlementId, SettlementId]]:
-    g: nx.Graph = nx.Graph()  # later convert to SettlementId keys
+    g: nx.Graph[SettlementId] = nx.Graph()  # later convert to SettlementId keys
     edges = _complete_graph_edges(world)
     for a_id, b_id, d in edges:
         g.add_edge(a_id, b_id, weight=d)
 
-    mst: nx.Graph = nx.minimum_spanning_tree(g, weight="weight")  # type: ignore
+    mst: nx.Graph[SettlementId] = nx.minimum_spanning_tree(g, weight="weight")  # type: ignore
 
-    return [(u, v) for (u, v) in mst.edges()]
+    return [(u, v) for (u, v) in mst.edges()]  # type: ignore
 
 
 def _ring_edges(world: WorldState, n: int) -> list[tuple[SettlementId, SettlementId]]:
@@ -140,8 +140,8 @@ def generate_roads(
 
     # build segments
     for idx, (i_id, j_id) in enumerate(sorted(chosen)):
-        a = world.settlement_by_id(i_id)
-        b = world.settlement_by_id(j_id)
+        a = world.settlement_by_id(SettlementId(i_id))
+        b = world.settlement_by_id(SettlementId(j_id))
         line = LineString([(a.center.x, a.center.y), (b.center.x, b.center.y)])
         line = _curved_link(a.center, b.center, rng=rng, jitter_frac=0.2, smooth_iters=2)
         # later add some road generation rules based on physics
