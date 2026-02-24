@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import hashlib
 from dataclasses import dataclass
 
 import numpy as np
+import numpy.typing as npt
 from PIL import Image, ImageDraw
 from shapely.geometry import Polygon
 
@@ -46,7 +46,7 @@ def make_empty_mask(W: int, H: int) -> Image.Image:
     return Image.new("L", (W, H), color=0)
 
 
-def pil_mask_to_bool(im: Image.Image) -> np.ndarray:
+def pil_mask_to_bool(im: Image.Image) -> npt.NDArray[np.bool_]:
     return np.array(im, dtype=np.uint8) > 0
 
 
@@ -59,18 +59,6 @@ def draw_poly_mask(
     draw.polygon(ext, fill=value)
     for hole in holes:
         draw.polygon(hole, fill=0)
-
-
-def rng_from_id(global_rng: np.random.Generator, stable_id: str) -> np.random.Generator:
-    # mix global randomness with stable id (so different scenes differ, but buildings are unique)
-    h = hashlib.blake2b(stable_id.encode("utf-8"), digest_size=8).digest()
-    sid = int.from_bytes(h, "little", signed=False)
-    salt = int(global_rng.integers(0, 2**63 - 1, dtype=np.int64))
-    seed = (sid ^ salt) & ((1 << 63) - 1)
-    return np.random.default_rng(seed)
-    # Will be called like this:
-    # b_rng = rng_from_id(rng, b.id)  # or f"{world_id}:{b.id}"
-    # layers.append(building_palette(b_mask, b.settlement_id, scene, bp, b_rng))
 
 
 def render_world_textured(world: WorldState, rng: np.random.Generator) -> Image.Image:
