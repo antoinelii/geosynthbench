@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TypedDict
 
 import numpy as np
+import numpy.typing as npt
 from shapely.geometry import Point, Polygon
 from shapely.prepared import prep
 
@@ -48,18 +50,7 @@ class RasterTransform:
         v = (self.ymax - y) / self.dy
         return u, v
 
-    # vectorized
-    def world_to_px_vec(self, x: np.ndarray, y: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        u = (x - self.xmin) / self.dx
-        v = (self.ymax - y) / self.dy
-        return u, v
-
     def px_to_world(self, u: float, v: float) -> tuple[float, float]:
-        x = self.xmin + u * self.dx
-        y = self.ymax - v * self.dy
-        return x, y
-
-    def px_to_world_vec(self, u: np.ndarray, v: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         x = self.xmin + u * self.dx
         y = self.ymax - v * self.dy
         return x, y
@@ -76,13 +67,22 @@ class RasterTransform:
 
 
 @dataclass
+class PolyStats(TypedDict):
+    elev_mean: float
+    elev_max: float
+    slope_mean: float
+    slope_max: float
+    n: float
+
+
+@dataclass
 class HeightField:
     tr: RasterTransform
-    elevation_m: np.ndarray  # shape (H,W), float32
+    elevation_m: npt.NDArray[np.float32]  # shape (H,W), float32
 
-    _slope_cache: np.ndarray | None = None  # shape (H,W)
+    _slope_cache: npt.NDArray[np.float32] | None = None  # shape (H,W)
 
-    def slope(self) -> np.ndarray:
+    def slope(self) -> npt.NDArray[np.float32]:
         """
         Returns slope magnitude in meters per meter (approx),
         computed from gradient in world units.
@@ -113,7 +113,7 @@ class HeightField:
         vi = int(np.clip(round(v), 0, self.tr.height_px - 1))
         return float(s[vi, ui])
 
-    def poly_stats(self, poly: Polygon, max_points: int = 2048) -> dict[str, float]:
+    def poly_stats(self, poly: Polygon, max_points: int = 2048) -> PolyStats:
         """
         Approximate stats under polygon by sampling a grid of points in its bbox.
         """
