@@ -131,7 +131,7 @@ def _dataset_summary(recs: list[dict[str, Any]], max_preview: int = 30) -> None:
         )
 
     st.markdown("#### Preview (first records)")
-    st.dataframe(rows, width=True)
+    st.dataframe(rows, width="stretch")
 
 
 def main() -> None:
