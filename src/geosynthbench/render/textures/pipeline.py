@@ -55,7 +55,7 @@ def render_scene_rgb(
     layers.append(roads_palette(masks.get("road", np.zeros_like(elev, bool)), scene, rp, rng))
 
     for b in buildings:
-        layers.append(building_palette(b.mask, b.settlement_id, scene, bp, rng))
+        layers.append(building_palette(b["mask"], b["settlement_id"], scene, bp, rng))
 
     rgb = render_full_rgb(bg, layers)
 
