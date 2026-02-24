@@ -22,7 +22,7 @@ class D1DistanceToWaterTask:
     name = "Distance to water comparison"
     is_temporal = False
 
-    def generate_t0(self, cfg: D1Config, rng: np.random.Generator):
+    def generate_t0(self, cfg: D1Config):
         from geosynthbench.tasks.utils import generate_t0_sample
 
         # If your generate_t0_sample uses cfg.seed internally, set it here.

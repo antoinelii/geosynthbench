@@ -165,7 +165,9 @@ def build_e1_record(
     *,
     sample_id: str,
     out_dir: str | Path,
-    seed: int,
+    world_seed: int,
+    render_seed: int,
+    task_seed: int,
     max_attempts: int = 50,
 ) -> dict[str, Any]:
     """
@@ -176,11 +178,11 @@ def build_e1_record(
     writer = DatasetWriter.create(out_path)
 
     sample_idx = _parse_sample_idx(sample_id)
-    rng = np.random.default_rng(seed)
 
-    # Same config as your E1 script :contentReference[oaicite:8]{index=8}
+    #### CONFIGURATION ####
+    # world
     t0_cfg = WorldGenConfig(
-        seed=0,
+        seed=world_seed,
         terrain_amplitude_m=300.0,
         terrain_n_hills=(3, 5),
         terrain_hill_sigma_m=(250.0, 500.0),
@@ -190,17 +192,22 @@ def build_e1_record(
         n_veg=(3, 6),
         n_settlements=(2, 5),
     )
-
+    # render
+    render_rng = np.random.default_rng(render_seed)
+    # task
     task = E1ElevationCompareTask()
     task_cfg = E1Config(world_cfg=t0_cfg, min_delta_m=5.0, settlement_strategy="first_two")
+    task_rng = np.random.default_rng(task_seed)
 
     last_err: Exception | None = None
     for attempt in range(max_attempts):
         try:
-            world_t0 = task.generate_t0(task_cfg, rng)
-            render = writer.render_and_save_t0(sample_idx=sample_idx, world_t0=world_t0, rng=rng)
+            world_t0 = task.generate_t0(task_cfg)
+            render = writer.render_and_save_t0(
+                sample_idx=sample_idx, world_t0=world_t0, rng=render_rng
+            )
             record = task.build_record(
-                sample_idx=sample_idx, cfg=task_cfg, world_t0=world_t0, render=render, rng=rng
+                sample_idx=sample_idx, cfg=task_cfg, world_t0=world_t0, render=render, rng=task_rng
             )
             record = _normalize_record_for_viewer(record, task_code="e1", sample_id=sample_id)
             log.success(f"[E1] built {sample_id} OK (attempt={attempt})")
@@ -218,7 +225,9 @@ def build_d1_record(
     *,
     sample_id: str,
     out_dir: str | Path,
-    seed: int,
+    world_seed: int,
+    render_seed: int,
+    task_seed: int,
     max_attempts: int = 60,
 ) -> dict[str, Any]:
     """
@@ -229,7 +238,8 @@ def build_d1_record(
     writer = DatasetWriter.create(out_path)
 
     sample_idx = _parse_sample_idx(sample_id)
-    rng = np.random.default_rng(seed)
+    render_rng = np.random.default_rng(render_seed)
+    task_rng = np.random.default_rng(task_seed)
 
     task = D1DistanceToWaterTask()
     cfg0 = make_d1_world_cfg(
@@ -240,7 +250,7 @@ def build_d1_record(
     last_err: Exception | None = None
     for attempt in range(max_attempts):
         try:
-            world_t0 = task.generate_t0(task_cfg, rng)
+            world_t0 = task.generate_t0(task_cfg)
 
             # Hard requirements (same as script) :contentReference[oaicite:11]{index=11}
             if len(world_t0.settlements) < 2:
@@ -248,13 +258,15 @@ def build_d1_record(
             if len(getattr(world_t0, "water", [])) < 2:
                 raise ValueError("Need ≥2 lakes")
 
-            render = writer.render_and_save_t0(sample_idx=sample_idx, world_t0=world_t0, rng=rng)
+            render = writer.render_and_save_t0(
+                sample_idx=sample_idx, world_t0=world_t0, rng=render_rng
+            )
             record = task.build_record(
                 sample_idx=sample_idx,
                 cfg=task_cfg,
                 world_t0=world_t0,
                 render=render,
-                rng=rng,
+                rng=task_rng,
             )
             record = _normalize_record_for_viewer(record, task_code="d1", sample_id=sample_id)
             log.success(f"[D1] built {sample_id} OK (attempt={attempt})")
