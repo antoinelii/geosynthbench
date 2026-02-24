@@ -8,6 +8,9 @@ from shapely.geometry.base import BaseGeometry
 
 from geosynthbench.world.world_state import WorldState
 
+JSONScalar = str | int | float | bool | None
+JSONValue = JSONScalar | list["JSONValue"] | dict[str, "JSONValue"]
+
 
 def geom_to_wkt(g: BaseGeometry | None) -> str | None:
     if g is None:
@@ -15,37 +18,49 @@ def geom_to_wkt(g: BaseGeometry | None) -> str | None:
     return g.wkt
 
 
-def _jsonify(obj: Any) -> Any:
-    """
-    Convert common non-JSON objects into JSON-friendly types.
-    - Shapely geometry -> WKT
-    - numpy scalars -> python scalars
-    - dataclasses -> dict recursively
-    """
+def _jsonify(obj: Any) -> JSONValue:
     if obj is None:
         return None
 
+    # Shapely geometry -> string
     if isinstance(obj, BaseGeometry):
         return obj.wkt
 
-    if isinstance(obj, (np.integer, np.int32, np.int64)):
-        return int(obj)
-    if isinstance(obj, (np.floating, np.float32, np.float64)):
-        return float(obj)
-    if isinstance(obj, (np.bool_,)):
-        return bool(obj)
+    # NumPy scalar -> Python scalar (covers np.integer, np.floating, np.bool_, etc.)
+    if isinstance(obj, np.generic):
+        if isinstance(obj, np.integer):
+            return obj.item()
+        if isinstance(obj, np.floating):
+            return obj.item()
+        if isinstance(obj, np.bool_):
+            return bool(obj)
+        # .item() returns a Python scalar (int/float/bool/str/bytes/etc.)
+        # JSON doesn't support bytes, so convert defensively:
+        if isinstance(obj, np.bytes_):
+            return obj.hex()
+        if isinstance(obj, (str, int, float, bool)) or obj is None:
+            return obj
+        # Fallback: stringify anything weird
+        return str(obj)
 
+    # Dataclasses -> dict
     if is_dataclass(obj):
-        d = asdict(obj)
-        return {k: _jsonify(v) for k, v in d.items()}
+        d = asdict(obj)  # returns dict[str, Any] effectively
+        return {str(k): _jsonify(v) for k, v in d.items()}
 
+    # Builtin containers
     if isinstance(obj, dict):
         return {str(k): _jsonify(v) for k, v in obj.items()}
 
     if isinstance(obj, (list, tuple)):
-        return [_jsonify(x) for x in obj]
+        return [_jsonify(v) for v in obj]
 
-    return obj
+    # Plain JSON scalars
+    if isinstance(obj, (str, int, float, bool)):
+        return obj
+
+    # Last resort: string
+    return str(obj)
 
 
 def world_to_dict(world: WorldState, *, include_terrain_ref: str | None = None) -> dict[str, Any]:
