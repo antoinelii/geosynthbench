@@ -93,6 +93,8 @@ def world_from_jsonl(raw_jsonl: dict[str, Any], base_dir: Path) -> WorldState:
                 near_road_id=RoadId(str(b_.near_road_id)) if b_.near_road_id is not None else None,
             )
         )
+
+    _ = world.extent_polygon()  # ensure extent is cached for later geometry checks
     return world
 
 
