@@ -8,6 +8,7 @@ from PIL import Image
 
 from geosynthbench.io.deserialize import world_from_jsonl
 from geosynthbench.io.jsonl_utils import read_jsonl_record
+from geosynthbench.paths import DATA_DIR
 from geosynthbench.render.renderer import mask_layers_to_mask_image, render_world_textured_with_mask
 
 # --- Import your texture pipeline entrypoint(s)
@@ -18,7 +19,7 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--jsonl", type=Path, required=True, help="Path to t0.jsonl")
     ap.add_argument("--idx", type=int, default=0, help="Which jsonl record to load")
-    ap.add_argument("--out", type=Path, default=Path("out"), help="Output directory")
+    ap.add_argument("--out", type=Path, default=DATA_DIR / "out", help="Output directory")
     ap.add_argument("--seed", type=int, default=0, help="RNG seed for textures")
     args = ap.parse_args()
 
