@@ -20,5 +20,5 @@ class RenderArtifacts:
     change_mask: str | None = None  # uint8 HxW, 0..K (or binary)
     # use default factory for extra to avoid mutable default arg
     extra: dict[str, Any] = field(
-        default_factory=dict
+        default_factory=lambda: {}
     )  # for any additional info your renderer wants to return
