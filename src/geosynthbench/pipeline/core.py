@@ -7,7 +7,7 @@ from typing import Any
 import numpy as np
 
 from geosynthbench.pipeline.writer import DatasetWriter
-from geosynthbench.tasks.base import BaseTask
+from geosynthbench.tasks.base import BaseTask, ChangeResult
 
 
 @dataclass(frozen=True)
@@ -32,7 +32,10 @@ class DatasetPipeline:
             change_mask = None
             change_log = None
             if self.task.is_temporal:
-                world_t1, change_mask, change_log = self.task.apply_change(world_t0, task_cfg, rng)
+                change_result: ChangeResult = self.task.apply_change(world_t0, task_cfg, rng)
+                world_t1 = change_result.world_t1
+                change_mask = change_result.change_mask
+                change_log = change_result.change_log
 
             # 3) render + save files
             render = writer.render_and_save(
@@ -47,7 +50,7 @@ class DatasetPipeline:
             # 4) record
             record = self.task.build_record(
                 sample_idx=i,
-                cfg=task_cfg,
+                task_cfg=task_cfg,
                 world_t0=world_t0,
                 world_t1=world_t1,
                 render=render,
