@@ -13,6 +13,7 @@ from geosynthbench.pipeline.writer import DatasetWriter
 from geosynthbench.tasks.a1_road_plus_building import A1Config, A1RoadPlusBuildingTask
 from geosynthbench.tasks.d1_distance_to_water import D1Config, D1DistanceToWaterTask
 from geosynthbench.tasks.e1_elevation import E1Config, E1ElevationCompareTask
+from geosynthbench.tasks.exceptions import TaskGenerationFailed
 from geosynthbench.tasks.n1_isolation import (
     N1Config,
     N1IsolationTask,
@@ -224,7 +225,7 @@ def build_e1_record(
             last_err = e
             continue
 
-    raise RuntimeError(
+    raise TaskGenerationFailed(
         f"[E1] FAILED to build {sample_id} after {max_attempts} attempts: {last_err}"
     )
 
@@ -286,7 +287,7 @@ def build_d1_record(
             last_err = e
             continue
 
-    raise RuntimeError(
+    raise TaskGenerationFailed(
         f"[D1] FAILED to build {sample_id} after {max_attempts} attempts: {last_err}"
     )
 
@@ -348,7 +349,7 @@ def build_s1_record(
             last_err = e
             continue
 
-    raise RuntimeError(
+    raise TaskGenerationFailed(
         f"[S1] FAILED to build {sample_id} after {max_attempts} attempts: {last_err}"
     )
 
@@ -418,8 +419,7 @@ def build_n1_record(
         except ValueError as e:
             last_err = e
             continue
-
-    raise RuntimeError(
+    raise TaskGenerationFailed(
         f"[N1] FAILED to build {sample_id} after {max_attempts} attempts: {last_err}"
     )
 
@@ -514,6 +514,6 @@ def build_a1_record(
             last_err = e
             continue
 
-    raise RuntimeError(
+    raise TaskGenerationFailed(
         f"[A1] FAILED to build {sample_id} after {max_attempts} attempts: {last_err}"
     )
