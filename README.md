@@ -231,10 +231,18 @@ Future extensions include richer temporal change reasoning beyond simple two-tim
 
 On the modeling side, systematic VLM fine-tuning experiments would help quantify the impact of structured synthetic data. Finally, exploring real-to-synthetic transfer and vice versa would assess how well learned reasoning primitives generalize to real geospatial imagery.
 
-## 📦 Medium Dataset
+## 📦 Pregenerated Dataset
 
-You can download a larger pre-generated dataset (~0.8 GB):
+You can download directly a demo size dataset (~24 MB):
 
 🔗 **Direct download:**
-[https://drive.google.com/file/d/152d-f1IBdbZxXJeP3klTuiqMZpH1rsld/view?usp=drive_link
+[https://drive.google.com/file/d/1marE950KYRJSOEAM2acJEVgMn-UGZs-T/view?usp=drive_link
+](https://drive.google.com/file/d/1marE950KYRJSOEAM2acJEVgMn-UGZs-T/view?usp=drive_link)
+
+Or a larger pre-generated dataset (~0.8 GB):
+
+🔗 **Direct download:**
+
+<!--[https://drive.google.com/file/d/152d-f1IBdbZxXJeP3klTuiqMZpH1rsld/view?usp=drive_link
 ](https://drive.google.com/file/d/152d-f1IBdbZxXJeP3klTuiqMZpH1rsld/view?usp=drive_link)
+-->
