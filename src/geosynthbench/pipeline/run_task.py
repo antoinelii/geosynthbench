@@ -218,7 +218,7 @@ def build_e1_record(
                 rng=task_rng,
             )
             record = _normalize_record_for_viewer(record, task_code="e1", sample_id=sample_id)
-            log.success(f"[E1] built {sample_id} OK (attempt={attempt})")
+            log.success(f"[E1] built {sample_id} OK (attempt={attempt})")  # type: ignore
             return record
         except ValueError as e:
             last_err = e
@@ -279,7 +279,7 @@ def build_d1_record(
                 rng=task_rng,
             )
             record = _normalize_record_for_viewer(record, task_code="d1", sample_id=sample_id)
-            log.success(f"[D1] built {sample_id} OK (attempt={attempt})")
+            log.success(f"[D1] built {sample_id} OK (attempt={attempt})")  # type: ignore
             return record
 
         except ValueError as e:
@@ -341,7 +341,7 @@ def build_s1_record(
                 rng=task_rng,
             )
             record = _normalize_record_for_viewer(record, task_code="s1", sample_id=sample_id)
-            log.success(f"[S1] built {sample_id} OK (attempt={attempt})")
+            log.success(f"[S1] built {sample_id} OK (attempt={attempt})")  # type: ignore
             return record
 
         except ValueError as e:
@@ -410,7 +410,7 @@ def build_n1_record(
                 rng=task_rng,
             )
             record = _normalize_record_for_viewer(record, task_code="n1", sample_id=sample_id)
-            log.success(
+            log.success(  # type: ignore
                 f"[N1] built {sample_id} OK (attempt={attempt}) | best={record.get('answer')}"
             )
             return record
@@ -505,7 +505,7 @@ def build_a1_record(
             record.pop("_debug_world_t1", None)
 
             record = _normalize_record_for_viewer(record, task_code="a1", sample_id=sample_id)
-            log.success(
+            log.success(  # type: ignore
                 f"[A1] built {sample_id} OK (attempt={attempt}) | answer={record.get('answer')}"
             )
             return record
