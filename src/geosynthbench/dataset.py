@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Optional
 
 import numpy as np
+import numpy.typing as npt
 
 from geosynthbench.io.deserialize import world_from_jsonl
 from geosynthbench.io.jsonl_utils import JsonlWritePaths, append_world_t0_jsonl, read_jsonl_record
@@ -61,35 +62,35 @@ class WorldItem:
         world_state = world_from_jsonl(record["t0"], base_dir=self.jsonl_path.parent)
         return world_state
 
-    def load_terrain(self) -> np.ndarray[tuple[int, int], np.float32]:
-        terrain = np.load(self.terrain_path).astype(np.dtype(np.float32))
+    def load_terrain(self) -> npt.NDArray[np.float32]:
+        terrain = np.load(self.terrain_path).astype(np.float32, copy=False)
         return terrain
 
-    def load_rgb(self) -> Optional[np.ndarray[tuple[int, int, int], np.uint8]]:
+    def load_rgb(self) -> npt.NDArray[np.uint8] | None:
         if self.has_rgb:
             assert self.rgb_path is not None
-            rgb = np.load(self.rgb_path).astype(np.dtype(np.uint8))
+            rgb = np.load(self.rgb_path).astype(np.uint8, copy=False)
             return rgb
         return None
 
-    def load_mask(self) -> Optional[np.ndarray[tuple[int, int, int], np.uint8]]:
+    def load_mask(self) -> npt.NDArray[np.uint8] | None:
         if self.has_mask:
             assert self.mask_path is not None
-            mask = np.load(self.mask_path).astype(np.dtype(np.uint8))
+            mask = np.load(self.mask_path).astype(np.uint8, copy=False)
             return mask
         return None
 
-    def load_height(self) -> Optional[np.ndarray[tuple[float], np.float32]]:
+    def load_height(self) -> npt.NDArray[np.float32] | None:
         if self.has_height:
             assert self.height_path is not None
-            height = np.load(self.height_path).astype(np.dtype(np.float32))
+            height = np.load(self.height_path).astype(np.float32, copy=False)
             return height
         return None
 
-    def load_slope(self) -> Optional[np.ndarray[tuple[float], np.float32]]:
+    def load_slope(self) -> npt.NDArray[np.float32] | None:
         if self.has_slope:
             assert self.slope_path is not None
-            slope = np.load(self.slope_path).astype(np.dtype(np.float32))
+            slope = np.load(self.slope_path).astype(np.float32, copy=False)
             return slope
         return None
 
@@ -103,7 +104,7 @@ class WorldsDataset:
         self.base_dir = Path(base_dir)
         self.jsonl_path = self.base_dir / jsonl_name
         self.terrain_dir = self.base_dir / "terrain"
-        self.items = []
+        self.items: list[WorldItem] = []
         if self.jsonl_path.exists():
             with self.jsonl_path.open("r", encoding="utf-8") as f:
                 for line in f:
@@ -130,14 +131,14 @@ class WorldsDataset:
         world_state = self.items[idx].load_world_state()
         return world_state
 
-    def load_terrain(self, idx: int) -> np.ndarray[tuple[float, float], np.float32]:
+    def load_terrain(self, idx: int) -> npt.NDArray[np.float32]:
         terrain = self.items[idx].load_terrain()
         return terrain
 
-    def load_rgb(self, idx: int) -> Optional[np.ndarray[tuple[int, int, int], np.uint8]]:
+    def load_rgb(self, idx: int) -> npt.NDArray[np.uint8] | None:
         item = self.items[idx]
         if item.rgb_path is not None and item.rgb_path.exists():
-            rgb = np.load(item.rgb_path).astype(np.dtype(np.uint8))
+            rgb = np.load(item.rgb_path).astype(np.uint8, copy=False)
             return rgb
         return None
 
@@ -149,7 +150,16 @@ class WorldsDataset:
             paths=paths, sample_id=sample_id, world=world_state, save_terrain=True
         )
         self.items.append(WorldItem(sample_id=sample_id, jsonl_path=self.jsonl_path))
-        print(
-            f"Added record {sample_id} to dataset with {len(self.items)} total items."
-            f" jsonl: {self.jsonl_path}, terrain: {paths.terrain_dir / f'{sample_id}_elevation.npy'}"
-        )
+        if paths.terrain_dir is not None:
+            terrain_path = paths.terrain_dir / f"{sample_id}_elevation.npy"
+            if terrain_path.exists():
+                terrain_path.unlink()  # remove existing file to avoid confusion
+            print(
+                f"Added record {sample_id} to dataset with {len(self.items)} total items."
+                f" jsonl: {self.jsonl_path}, terrain: {terrain_path}"
+            )
+        else:
+            print(
+                f"Added record {sample_id} to dataset with {len(self.items)} total items."
+                f" jsonl: {self.jsonl_path}, but no terrain directory specified."
+            )
