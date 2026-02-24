@@ -63,6 +63,20 @@ def _normalize_record_for_viewer(
 # -------------------------
 
 
+def make_e1_world_cfg(seed: int) -> WorldGenConfig:
+    return WorldGenConfig(
+        seed=seed,
+        terrain_amplitude_m=300.0,
+        terrain_n_hills=(3, 5),
+        terrain_hill_sigma_m=(250.0, 500.0),
+        terrain_noise_scale_m=300.0,
+        terrain_noise_strength_m=6.0,
+        n_water=(1, 3),
+        n_veg=(3, 6),
+        n_settlements=(2, 5),
+    )
+
+
 def make_d1_world_cfg(seed: int) -> WorldGenConfig:
     # Mirrors scripts/generate_d1.py :contentReference[oaicite:4]{index=4}
     return WorldGenConfig(
@@ -181,22 +195,12 @@ def build_e1_record(
 
     #### CONFIGURATION ####
     # world
-    t0_cfg = WorldGenConfig(
-        seed=world_seed,
-        terrain_amplitude_m=300.0,
-        terrain_n_hills=(3, 5),
-        terrain_hill_sigma_m=(250.0, 500.0),
-        terrain_noise_scale_m=300.0,
-        terrain_noise_strength_m=6.0,
-        n_water=(1, 3),
-        n_veg=(3, 6),
-        n_settlements=(2, 5),
-    )
+    cfg0 = make_e1_world_cfg(seed=world_seed)
     # render
     render_rng = np.random.default_rng(render_seed)
     # task
     task = E1ElevationCompareTask()
-    task_cfg = E1Config(world_cfg=t0_cfg, min_delta_m=5.0, settlement_strategy="first_two")
+    task_cfg = E1Config(world_cfg=cfg0, min_delta_m=5.0, settlement_strategy="first_two")
     task_rng = np.random.default_rng(task_seed)
 
     last_err: Exception | None = None
@@ -242,6 +246,8 @@ def build_d1_record(
     writer = DatasetWriter.create(out_path)
 
     sample_idx = _parse_sample_idx(sample_id)
+
+    cfg0 = make_d1_world_cfg(seed=world_seed)
     render_rng = np.random.default_rng(render_seed)
     task_rng = np.random.default_rng(task_seed)
 
@@ -289,7 +295,9 @@ def build_s1_record(
     *,
     sample_id: str,
     out_dir: str | Path,
-    seed: int,
+    world_seed: int,
+    render_seed: int,
+    task_seed: int,
     max_attempts: int = 80,
 ) -> dict[str, Any]:
     """
@@ -300,18 +308,17 @@ def build_s1_record(
     writer = DatasetWriter.create(out_path)
 
     sample_idx = _parse_sample_idx(sample_id)
-    rng = np.random.default_rng(seed)
 
     task = S1SlopeCompareTask()
-    cfg0 = make_s1_world_cfg(
-        seed=0
-    )  # seed overridden via rng in task.generate_t0 :contentReference[oaicite:13]{index=13}
+    cfg0 = make_s1_world_cfg(seed=world_seed)
     task_cfg = S1Config(world_cfg=cfg0, min_delta=0.02)
+    render_rng = np.random.default_rng(render_seed)
+    task_rng = np.random.default_rng(task_seed)
 
     last_err: Exception | None = None
     for attempt in range(max_attempts):
         try:
-            world_t0 = task.generate_t0(task_cfg, rng)
+            world_t0 = task.generate_t0(task_cfg)
 
             if len(world_t0.settlements) < 2:
                 raise ValueError("Need ≥2 settlements")
@@ -323,13 +330,15 @@ def build_s1_record(
             if float(np.percentile(s, 95) - np.percentile(s, 50)) < 0.02:
                 raise ValueError("Terrain slope diversity too low")
 
-            render = writer.render_and_save_t0(sample_idx=sample_idx, world_t0=world_t0, rng=rng)
+            render = writer.render_and_save_t0(
+                sample_idx=sample_idx, world_t0=world_t0, rng=render_rng
+            )
             record = task.build_record(
                 sample_idx=sample_idx,
                 task_cfg=task_cfg,
                 world_t0=world_t0,
                 render=render,
-                rng=rng,
+                rng=task_rng,
             )
             record = _normalize_record_for_viewer(record, task_code="s1", sample_id=sample_id)
             log.success(f"[S1] built {sample_id} OK (attempt={attempt})")
@@ -348,7 +357,9 @@ def build_n1_record(
     *,
     sample_id: str,
     out_dir: str | Path,
-    seed: int,
+    world_seed: int,
+    render_seed: int,
+    task_seed: int,
     max_attempts: int = 120,
 ) -> dict[str, Any]:
     """
@@ -359,19 +370,20 @@ def build_n1_record(
     writer = DatasetWriter.create(out_path)
 
     sample_idx = _parse_sample_idx(sample_id)
-    rng = np.random.default_rng(seed)
 
     task = N1IsolationTask()
     cfg0 = make_n1_world_cfg(
-        seed=0
+        seed=world_seed
     )  # seed mutated inside task.generate_t0 :contentReference[oaicite:16]{index=16}
     task_cfg = N1Config(world_cfg=cfg0, clarity_ratio=1.10, clarity_delta_m=200.0, strategy="by_id")
+    render_rng = np.random.default_rng(render_seed)
+    task_rng = np.random.default_rng(task_seed)
 
     last_err: Exception | None = None
     for attempt in range(max_attempts):
         try:
             try:
-                world_t0 = task.generate_t0(task_cfg, rng)
+                world_t0 = task.generate_t0(task_cfg)
             except RuntimeError as e:
                 last_err = e
                 continue
@@ -387,13 +399,15 @@ def build_n1_record(
             ):
                 raise ValueError("isolation not clear enough")
 
-            render = writer.render_and_save_t0(sample_idx=sample_idx, world_t0=world_t0, rng=rng)
+            render = writer.render_and_save_t0(
+                sample_idx=sample_idx, world_t0=world_t0, rng=render_rng
+            )
             record = task.build_record(
                 sample_idx=sample_idx,
                 task_cfg=task_cfg,
                 world_t0=world_t0,
                 render=render,
-                rng=rng,
+                rng=task_rng,
             )
             record = _normalize_record_for_viewer(record, task_code="n1", sample_id=sample_id)
             log.success(
@@ -414,7 +428,9 @@ def build_a1_record(
     *,
     sample_id: str,
     out_dir: str | Path,
-    seed: int,
+    world_seed: int,
+    render_seed: int,
+    task_seed: int,
     max_attempts: int = 120,
 ) -> dict[str, Any]:
     log = get_logger()
@@ -422,11 +438,12 @@ def build_a1_record(
     writer = DatasetWriter.create(out_path)
 
     sample_idx = _parse_sample_idx(sample_id)
-    rng = np.random.default_rng(seed)
 
     task = A1RoadPlusBuildingTask()
-    cfg0 = make_a1_world_cfg(seed=0)  # seed overridden via rng pattern (same style as D1/N1)
+    cfg0 = make_a1_world_cfg(seed=world_seed)
     task_cfg = A1Config(world_cfg=cfg0)
+    render_rng = np.random.default_rng(render_seed)
+    task_rng = np.random.default_rng(task_seed)
 
     last_err: Exception | None = None
     for attempt in range(max_attempts):
@@ -447,7 +464,7 @@ def build_a1_record(
                     t1_mask=None,
                     change_mask=None,
                 ),
-                rng=rng,
+                rng=task_rng,
             )
             world_t1 = tmp.get("_debug_world_t1")
             if world_t1 is None:
@@ -457,14 +474,16 @@ def build_a1_record(
             render = None
             if hasattr(writer, "render_and_save_pair"):
                 render = writer.render_and_save_pair(
-                    sample_idx=sample_idx, world_t0=world_t0, world_t1=world_t1, rng=rng
+                    sample_idx=sample_idx, world_t0=world_t0, world_t1=world_t1, rng=render_rng
                 )
             else:
                 # minimal fallback (depends on your writer implementation)
-                r0 = writer.render_and_save_t0(sample_idx=sample_idx, world_t0=world_t0, rng=rng)
+                r0 = writer.render_and_save_t0(
+                    sample_idx=sample_idx, world_t0=world_t0, rng=render_rng
+                )
                 if hasattr(writer, "render_and_save_t1"):
                     r1 = writer.render_and_save_t1(
-                        sample_idx=sample_idx, world_t1=world_t1, rng=rng
+                        sample_idx=sample_idx, world_t1=world_t1, rng=render_rng
                     )
                     # merge the two objects (duck-typing)
                     for k, v in r1.__dict__.items():
@@ -481,7 +500,7 @@ def build_a1_record(
                 task_cfg=task_cfg,
                 world_t0=world_t0,
                 render=render,
-                rng=rng,
+                rng=task_rng,
             )
             record.pop("_debug_world_t1", None)
 

@@ -78,7 +78,7 @@ class N1IsolationTask:
     name = "Most isolated settlement in road network"
     is_temporal = False
 
-    def generate_t0(self, task_cfg: N1Config, rng: np.random.Generator):
+    def generate_t0(self, task_cfg: N1Config):
         from geosynthbench.tasks.utils import generate_t0_sample
 
         world_cfg = task_cfg.world_cfg

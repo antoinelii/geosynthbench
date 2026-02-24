@@ -23,7 +23,7 @@ class S1SlopeCompareTask:
     name = "Slope comparison between settlements"
     is_temporal = False
 
-    def generate_t0(self, task_cfg: S1Config, rng: np.random.Generator):
+    def generate_t0(self, task_cfg: S1Config):
         from geosynthbench.tasks.utils import generate_t0_sample
 
         # If your generate_t0_sample uses cfg.seed internally, set it here.
